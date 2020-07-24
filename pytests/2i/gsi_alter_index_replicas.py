@@ -922,9 +922,9 @@ class GSIAlterIndexesTests(GSIIndexPartitioningTests):
 
         self.sleep(10)
 
-        # Kill memcached on Node A so that Node B becomes master
+        # Kill memcached on Node A so that Node B becomes main
         self.log.info("Kill Memcached process on NodeA")
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
         shell.kill_memcached()
 
         # Start persistence on Node B
@@ -1056,7 +1056,7 @@ class GSIAlterIndexesTests(GSIIndexPartitioningTests):
 
         # Drop and recreate bucket
         self.cluster.bucket_delete(kv_node, bucket="default")
-        default_params = self._create_bucket_params(server=self.master,
+        default_params = self._create_bucket_params(server=self.main,
                                                     size=self.bucket_size,
                                                     replicas=self.num_replicas)
 
@@ -1112,7 +1112,7 @@ class GSIAlterIndexesTests(GSIIndexPartitioningTests):
 
         # Drop and recreate bucket
         self.cluster.bucket_delete(kv_node, bucket="default")
-        default_params = self._create_bucket_params(server=self.master,
+        default_params = self._create_bucket_params(server=self.main,
                                                     size=self.bucket_size,
                                                     replicas=self.num_replicas)
 
@@ -1197,7 +1197,7 @@ class GSIAlterIndexesTests(GSIIndexPartitioningTests):
 
         # Drop and recreate bucket
         self.cluster.bucket_delete(kv_node, bucket="default")
-        default_params = self._create_bucket_params(server=self.master,
+        default_params = self._create_bucket_params(server=self.main,
                                                     size=self.bucket_size,
                                                     replicas=self.num_replicas)
 
@@ -1226,11 +1226,11 @@ class GSIAlterIndexesTests(GSIIndexPartitioningTests):
         host_name = index_map['default']['idx1 (replica 1)']['hosts']
 
         for server in self.servers:
-            if host_name == (server.ip + ':' + server.port) and server != self.master:
+            if host_name == (server.ip + ':' + server.port) and server != self.main:
                 stop_node = server
-            elif index_map['default']['idx1 (replica 2)']['hosts'] == (server.ip + ':' + server.port) and server != self.master:
+            elif index_map['default']['idx1 (replica 2)']['hosts'] == (server.ip + ':' + server.port) and server != self.main:
                 stop_node = server
-            elif index_map['default']['idx1']['hosts'] == (server.ip + ':' + server.port) and server != self.master:
+            elif index_map['default']['idx1']['hosts'] == (server.ip + ':' + server.port) and server != self.main:
                 stop_node = server
         try:
             remote = RemoteMachineShellConnection(stop_node)
@@ -1431,13 +1431,13 @@ class GSIAlterIndexesTests(GSIIndexPartitioningTests):
         indexes = rest.get_indexer_metadata()
 
         for index in indexes['status']:
-            if '(replica ' in index['name'] and index['hosts'][0] != (self.master.ip + ":" + self.master.port):
+            if '(replica ' in index['name'] and index['hosts'][0] != (self.main.ip + ":" + self.main.port):
                 rebalance_out_node_ip = index['hosts'][0]
                 replica_name = index['name']
                 replica_id = index['replicaId']
 
         for server in self.servers:
-            if (server.ip + ":" + server.port) == rebalance_out_node_ip and server != self.master:
+            if (server.ip + ":" + server.port) == rebalance_out_node_ip and server != self.main:
                 rebalance_out_node = server
 
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], [rebalance_out_node])

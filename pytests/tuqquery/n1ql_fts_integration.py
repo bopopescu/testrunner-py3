@@ -302,14 +302,14 @@ class N1qlFTSIntegrationTest(QueryTests):
         password = self.users[user]['password']
 
         services_map = self._get_services_map()
-        master_result = self._validate_query_against_node(self.master, services_map, self.test_fts_query, self.test_n1ql_query, username=username, password=password)
+        main_result = self._validate_query_against_node(self.main, services_map, self.test_fts_query, self.test_n1ql_query, username=username, password=password)
         fts_node_result = self._validate_query_against_node(self.servers[1], services_map, self.test_fts_query, self.test_n1ql_query, username=username, password=password)
-        self.assertEqual(master_result, True, username+" query run failed on non-fts node")
+        self.assertEqual(main_result, True, username+" query run failed on non-fts node")
         self.assertEqual(fts_node_result, True, username+" query run failed on fts node")
 
-        master_result = self._validate_query_against_node(self.master, services_map, self.test_fts_alias_query, self.test_n1ql_query, username=username, password=password)
+        main_result = self._validate_query_against_node(self.main, services_map, self.test_fts_alias_query, self.test_n1ql_query, username=username, password=password)
         fts_node_result = self._validate_query_against_node(self.servers[1], services_map, self.test_fts_alias_query, self.test_n1ql_query, username=username, password=password)
-        self.assertEqual(master_result, True, username+" alias query run failed on non-fts node")
+        self.assertEqual(main_result, True, username+" alias query run failed on non-fts node")
         self.assertEqual(fts_node_result, True, username+" alias query run failed on fts node")
 
 
@@ -321,14 +321,14 @@ class N1qlFTSIntegrationTest(QueryTests):
 
         services_map = self._get_services_map()
 
-        master_result = self._validate_query_against_node(self.master, services_map, self.test_fts_query, self.test_n1ql_query, username=username, password=password)
+        main_result = self._validate_query_against_node(self.main, services_map, self.test_fts_query, self.test_n1ql_query, username=username, password=password)
         fts_node_result = self._validate_query_against_node(self.servers[1], services_map, self.test_fts_query, self.test_n1ql_query, username=username, password=password)
-        self.assertEqual(master_result, False, username+" query run failed on non-fts node")
+        self.assertEqual(main_result, False, username+" query run failed on non-fts node")
         self.assertEqual(fts_node_result, False, username+" query run failed on fts node")
 
-        alias_master_result = self._validate_query_against_node(self.master, services_map, self.test_fts_alias_query, self.test_n1ql_query, username=username, password=password)
+        alias_main_result = self._validate_query_against_node(self.main, services_map, self.test_fts_alias_query, self.test_n1ql_query, username=username, password=password)
         alias_fts_node_result = self._validate_query_against_node(self.servers[1], services_map, self.test_fts_alias_query, self.test_n1ql_query, username=username, password=password)
-        self.assertEqual(alias_master_result, False, username+" alias query run failed on non-fts node")
+        self.assertEqual(alias_main_result, False, username+" alias query run failed on non-fts node")
         self.assertEqual(alias_fts_node_result, False, username+" alias query run failed on fts node")
 
 
@@ -340,7 +340,7 @@ class N1qlFTSIntegrationTest(QueryTests):
 
         errors_count = 0
         try:
-            self._run_query_against_node(self.master, self.test_fts_query, username=username, password=password)
+            self._run_query_against_node(self.main, self.test_fts_query, username=username, password=password)
         except CBQError as e:
             if "User does not have credentials to run SELECT queries" in str(e):
                 errors_count = errors_count+1
@@ -353,7 +353,7 @@ class N1qlFTSIntegrationTest(QueryTests):
 
         errors_count = 0
         try:
-            self._run_query_against_node(self.master, self.test_fts_alias_query, username=username, password=password)
+            self._run_query_against_node(self.main, self.test_fts_alias_query, username=username, password=password)
         except CBQError as e:
             if "User does not have credentials to run SELECT queries" in str(e):
                 errors_count = errors_count+1
@@ -604,7 +604,7 @@ class N1qlFTSIntegrationTest(QueryTests):
         call_prepared = self.prepareds_tests[test_name]['call_prepared']
         call_prepared_alias = self.prepareds_tests[test_name]['call_prepared_alias']
 
-        for server in [self.master, self.servers[1]]:
+        for server in [self.main, self.servers[1]]:
             self.run_cbq_query("delete from system:prepareds")
 
             # ------------------ create simple prepared -----------------------
@@ -612,14 +612,14 @@ class N1qlFTSIntegrationTest(QueryTests):
             self.sleep(5)
             # -------------- execute simple prepared -----------------------
             prepared_results = self.run_cbq_query_curl(query=call_prepared, server=server)['results']
-            test_result = self._run_query_against_node(self.master, self.test_fts_query)
-            self.assertEqual(test_result==prepared_results, True, "Node " + str(self.master) + " test is failed.")
+            test_result = self._run_query_against_node(self.main, self.test_fts_query)
+            self.assertEqual(test_result==prepared_results, True, "Node " + str(self.main) + " test is failed.")
             # ------------------ create simple prepared using index alias -----------------------
             self.run_cbq_query_curl(query=prepared_statement_alias, server=server)
             self.sleep(5)
             # -------------- execute simple prepared using index alias -----------------------
             prepared_results = self.run_cbq_query_curl(query=call_prepared_alias, server=server)['results']
-            test_result = self._run_query_against_node(self.master, self.test_fts_alias_query)
+            test_result = self._run_query_against_node(self.main, self.test_fts_alias_query)
             self.assertEqual(test_result==prepared_results, True)
 
 
@@ -630,7 +630,7 @@ class N1qlFTSIntegrationTest(QueryTests):
         statement = self.parameterized_queries_test[test_name]['statement']
         statement_alias = self.parameterized_queries_test[test_name]['statement_alias']
 
-        for server in [self.master, self.servers[1]]:
+        for server in [self.main, self.servers[1]]:
             prepared_results = self.run_cbq_query_curl(query=statement, server=server)['results']
             test_result = self._run_query_against_node(server, self.test_fts_query)
             self.assertEqual(test_result==prepared_results, True, "Node " + str(server) + " test is failed.")
@@ -705,7 +705,7 @@ class N1qlFTSIntegrationTest(QueryTests):
     # ================================= Init =============================
 
     def _init_nodes(self):
-        test_bucket_params = self._create_bucket_params(server=self.master, size=self.bucket_size,
+        test_bucket_params = self._create_bucket_params(server=self.main, size=self.bucket_size,
                                                         replicas=self.num_replicas, bucket_type=self.bucket_type,
                                                         enable_replica_index=self.enable_replica_index,
                                                         eviction_policy=self.eviction_policy, lww=self.lww)
@@ -725,7 +725,7 @@ class N1qlFTSIntegrationTest(QueryTests):
                 initial_statement += "'primary_key':'primary_key_"+str(i) + "','string_field': 'string data " + str(i) + "','int_field':"+str(i)+"})"
             self.run_cbq_query(initial_statement)
 
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
         shell.execute_cbworkloadgen(self.username, self.password, 15000, 100, "big_bucket", 1024, '-j')
         self.run_cbq_query("CREATE PRIMARY INDEX `#primary` ON `test_bucket`")
         self.run_cbq_query("CREATE PRIMARY INDEX `#primary` ON `big_bucket`")
@@ -771,88 +771,88 @@ class N1qlFTSIntegrationTest(QueryTests):
         idx.update_num_replicas(replicas)
 
     def _open_curl_access(self):
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
 
-        cmd = (self.curl_path+' -u '+self.master.rest_username+':'+self.master.rest_password+' http://'+self.master.ip+':'+self.master.port+'/settings/querySettings/curlWhitelist -d \'{"all_access":true}\'')
+        cmd = (self.curl_path+' -u '+self.main.rest_username+':'+self.main.rest_password+' http://'+self.main.ip+':'+self.main.port+'/settings/querySettings/curlWhitelist -d \'{"all_access":true}\'')
         shell.execute_command(cmd)
 
     def _create_all_users(self):
         admin_user = [{'id': 'admin_user', 'name': 'admin_user', 'password': 'password'}]
         rolelist = [{'id': 'admin_user', 'name': 'admin_user', 'roles': 'admin'}]
-        RbacBase().create_user_source(admin_user, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(admin_user, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['admin_user'] = {'username': 'admin_user', 'password': 'password'}
 
         all_buckets_data_reader_search_admin = [{'id': 'all_buckets_data_reader_search_admin', 'name': 'all_buckets_data_reader_search_admin', 'password': 'password'}]
         rolelist = [{'id': 'all_buckets_data_reader_search_admin', 'name': 'all_buckets_data_reader_search_admin', 'roles': 'query_select[*],fts_admin[*],query_external_access'}]
-        RbacBase().create_user_source(all_buckets_data_reader_search_admin, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(all_buckets_data_reader_search_admin, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['all_buckets_data_reader_search_admin'] = {'username': 'all_buckets_data_reader_search_admin', 'password': 'password'}
 
         all_buckets_data_reader_search_reader = [{'id': 'all_buckets_data_reader_search_reader', 'name': 'all_buckets_data_reader_search_reader', 'password': 'password'}]
         rolelist = [{'id': 'all_buckets_data_reader_search_reader', 'name': 'all_buckets_data_reader_search_reader', 'roles': 'query_select[*],fts_searcher[*],query_external_access'}]
-        RbacBase().create_user_source(all_buckets_data_reader_search_reader, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(all_buckets_data_reader_search_reader, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['all_buckets_data_reader_search_reader'] = {'username': 'all_buckets_data_reader_search_reader', 'password': 'password'}
 
         test_bucket_data_reader_search_admin = [{'id': 'test_bucket_data_reader_search_admin', 'name': 'test_bucket_data_reader_search_admin', 'password': 'password'}]
         rolelist = [{'id': 'test_bucket_data_reader_search_admin', 'name': 'test_bucket_data_reader_search_admin', 'roles': 'query_select[test_bucket],fts_admin[test_bucket],query_external_access'}]
-        RbacBase().create_user_source(test_bucket_data_reader_search_admin, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(test_bucket_data_reader_search_admin, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['test_bucket_data_reader_search_admin'] = {'username': 'test_bucket_data_reader_search_admin', 'password': 'password'}
 
         test_bucket_data_reader_null = [{'id': 'test_bucket_data_reader_null', 'name': 'test_bucket_data_reader_null', 'password': 'password'}]
         rolelist = [{'id': 'test_bucket_data_reader_null', 'name': 'test_bucket_data_reader_null', 'roles': 'query_select[test_bucket],query_external_access'}]
-        RbacBase().create_user_source(test_bucket_data_reader_null, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(test_bucket_data_reader_null, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['test_bucket_data_reader_null'] = {'username': 'test_bucket_data_reader_null', 'password': 'password'}
 
         test_bucket_data_reader_search_reader = [{'id': 'test_bucket_data_reader_search_reader', 'name': 'test_bucket_data_reader_search_reader', 'password': 'password'}]
         rolelist = [{'id': 'test_bucket_data_reader_search_reader', 'name': 'test_bucket_data_reader_search_reader', 'roles': 'query_select[test_bucket],fts_searcher[test_bucket],query_external_access'}]
-        RbacBase().create_user_source(test_bucket_data_reader_search_reader, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(test_bucket_data_reader_search_reader, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['test_bucket_data_reader_search_reader'] = {'username': 'test_bucket_data_reader_search_reader', 'password': 'password'}
 
         all_buckets_data_reader_null = [{'id': 'all_buckets_data_reader_null', 'name': 'all_buckets_data_reader_null', 'password': 'password'}]
         rolelist = [{'id': 'all_buckets_data_reader_null', 'name': 'all_buckets_data_reader_null', 'roles': 'query_select[*],query_external_access'}]
-        RbacBase().create_user_source(all_buckets_data_reader_null, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(all_buckets_data_reader_null, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['all_buckets_data_reader_null'] = {'username': 'all_buckets_data_reader_null', 'password': 'password'}
 
         all_buckets_null_search_admin = [{'id': 'all_buckets_null_search_admin', 'name': 'all_buckets_null_search_admin', 'password': 'password'}]
         rolelist = [{'id': 'all_buckets_null_search_admin', 'name': 'all_buckets_null_search_admin', 'roles': 'fts_admin[*],query_external_access'}]
-        RbacBase().create_user_source(all_buckets_null_search_admin, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(all_buckets_null_search_admin, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['all_buckets_null_search_admin'] = {'username': 'all_buckets_null_search_admin', 'password': 'password'}
 
         all_buckets_null_null = [{'id': 'all_buckets_null_null', 'name': 'all_buckets_null_null', 'password': 'password'}]
         rolelist = [{'id': 'all_buckets_null_null', 'name': 'all_buckets_null_null', 'roles': 'query_external_access'}]
-        RbacBase().create_user_source(all_buckets_null_null, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(all_buckets_null_null, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['all_buckets_null_null'] = {'username': 'all_buckets_null_null', 'password': 'password'}
 
         all_buckets_null_search_reader = [{'id': 'all_buckets_null_search_reader', 'name': 'all_buckets_null_search_reader', 'password': 'password'}]
         rolelist = [{'id': 'all_buckets_null_search_reader', 'name': 'all_buckets_null_search_reader', 'roles': 'fts_searcher[*],query_external_access'}]
-        RbacBase().create_user_source(all_buckets_null_search_reader, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(all_buckets_null_search_reader, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['all_buckets_null_search_reader'] = {'username': 'all_buckets_null_search_reader', 'password': 'password'}
 
         test_bucket_null_search_admin = [{'id': 'test_bucket_null_search_admin', 'name': 'test_bucket_null_search_admin', 'password': 'password'}]
         rolelist = [{'id': 'test_bucket_null_search_admin', 'name': 'test_bucket_null_search_admin', 'roles': 'fts_admin[test_bucket],query_external_access'}]
-        RbacBase().create_user_source(test_bucket_null_search_admin, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(test_bucket_null_search_admin, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['test_bucket_null_search_admin'] = {'username': 'test_bucket_null_search_admin', 'password': 'password'}
 
         test_bucket_null_search_reader = [{'id': 'test_bucket_null_search_reader', 'name': 'test_bucket_null_search_reader', 'password': 'password'}]
         rolelist = [{'id': 'test_bucket_null_search_reader', 'name': 'test_bucket_null_search_reader', 'roles': 'fts_searcher[test_bucket],query_external_access'}]
-        RbacBase().create_user_source(test_bucket_null_search_reader, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(test_bucket_null_search_reader, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['test_bucket_null_search_reader'] = {'username': 'test_bucket_null_search_reader', 'password': 'password'}
 
         test_bucket_null_null = [{'id': 'test_bucket_null_null', 'name': 'test_bucket_null_null', 'password': 'password'}]
         rolelist = [{'id': 'test_bucket_null_null', 'name': 'test_bucket_null_null', 'roles': 'query_external_access'}]
-        RbacBase().create_user_source(test_bucket_null_null, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(test_bucket_null_null, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['test_bucket_null_null'] = {'username': 'test_bucket_null_null', 'password': 'password'}
 
 

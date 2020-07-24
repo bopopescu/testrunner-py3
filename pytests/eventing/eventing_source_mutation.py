@@ -27,12 +27,12 @@ class EventingSourceMutation(EventingBaseTest):
                                                        replicas=self.replicas)
             self.cluster.create_standard_bucket(name=self.src_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
-            self.src_bucket = RestConnection(self.master).get_buckets()
+            self.src_bucket = RestConnection(self.main).get_buckets()
             self.cluster.create_standard_bucket(name=self.dst_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
             self.cluster.create_standard_bucket(name=self.metadata_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params_meta)
-            self.buckets = RestConnection(self.master).get_buckets()
+            self.buckets = RestConnection(self.main).get_buckets()
         self.gens_load = self.generate_docs(self.docs_per_day)
         self.expiry = 3
         handler_code = self.input.param('handler_code', 'bucket_op')
@@ -52,7 +52,7 @@ class EventingSourceMutation(EventingBaseTest):
                                           n1ql_port=self.n1ql_port,
                                           full_docs_list=self.full_docs_list,
                                           log=self.log, input=self.input,
-                                          master=self.master,
+                                          main=self.main,
                                           use_rest=True
                                           )
             self.n1ql_helper.create_primary_index(using_gsi=True, server=self.n1ql_node)
@@ -67,7 +67,7 @@ class EventingSourceMutation(EventingBaseTest):
                                           n1ql_port=self.n1ql_port,
                                           full_docs_list=self.full_docs_list,
                                           log=self.log, input=self.input,
-                                          master=self.master,
+                                          main=self.main,
                                           use_rest=True
                                           )
             self.n1ql_helper.create_primary_index(using_gsi=True, server=self.n1ql_node)

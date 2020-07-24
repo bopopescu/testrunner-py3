@@ -16,7 +16,7 @@ class FailoverBaseTest(BaseTestCase):
         self.defaul_map_func = "function (doc) {\n  emit(doc._id, doc);\n}"
         self.default_view_name = "default_view"
         self.default_view = View(self.default_view_name, self.defaul_map_func, None)
-        self.failoverMaster = self.input.param("failoverMaster", False)
+        self.failoverMain = self.input.param("failoverMain", False)
         self.total_vbuckets = self.input.param("total_vbuckets", 1024)
         self.compact = self.input.param("compact", False)
         self.std_vbucket_dist = self.input.param("std_vbucket_dist", 20)
@@ -28,7 +28,7 @@ class FailoverBaseTest(BaseTestCase):
         self.numberViews = self.input.param("numberViews", False)
         self.gracefulFailoverFail = self.input.param("gracefulFailoverFail", False)
         self.runRebalanceAfterFailover = self.input.param("runRebalanceAfterFailover", True)
-        self.failoverMaster = self.input.param("failoverMaster", False)
+        self.failoverMain = self.input.param("failoverMain", False)
         self.check_verify_failover_type = self.input.param("check_verify_failover_type", True)
         self.recoveryType = self.input.param("recoveryType", "delta")
         self.bidirectional = self.input.param("bidirectional", False)
@@ -92,10 +92,10 @@ class FailoverBaseTest(BaseTestCase):
                 RemoteUtilHelper.common_basic_setup(self.servers)
                 BucketOperationHelper.delete_all_buckets_or_assert(self.servers, self)
                 for node in self.servers:
-                    master = node
+                    main = node
                     try:
                         ClusterOperationHelper.cleanup_cluster(self.servers,
-                                                               master=master)
+                                                               main=main)
                     except:
                         continue
                 self.log.info("==============  tearDown was finished for test #{0} {1} =============="\

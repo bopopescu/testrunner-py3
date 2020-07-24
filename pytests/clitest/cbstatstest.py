@@ -23,7 +23,7 @@ class cbstatsTests(CliBaseTest):
 
     def cbstats_test(self):
         """We use cbstas to check the various stats of server"""
-        cluster_len = RestConnection(self.master).get_cluster_size()
+        cluster_len = RestConnection(self.main).get_cluster_size()
         if self.command == "kvstore":
             self.verify_cluster_stats()
         if self.command != "key":
@@ -47,8 +47,8 @@ class cbstatsTests(CliBaseTest):
                     else:
                         self._verify_direct_client_stats(bucket, self.command, output)
         else:
-            mc_conn = MemcachedClientHelper.direct_client(self.master, self.buckets[0].name, self.timeout)
-            bucket_info = RestConnection(self.master).get_bucket(self.buckets[0])
+            mc_conn = MemcachedClientHelper.direct_client(self.main, self.buckets[0].name, self.timeout)
+            bucket_info = RestConnection(self.main).get_bucket(self.buckets[0])
             keys_map = {}
             for i in range(self.num_items):
                 vb_id = i - len(bucket_info.vbuckets) * int(i // len(bucket_info.vbuckets))
@@ -75,7 +75,7 @@ class cbstatsTests(CliBaseTest):
         go_sw_in_version = ["5.1.2", "5.5.1"]
         if self.software_name in go_software and \
             (self.cb_version[:5] in go_sw_in_version or 6.0 <= float(self.cb_version[:3])):
-            shell = RemoteMachineShellConnection(self.master)
+            shell = RemoteMachineShellConnection(self.main)
             output, error = shell.execute_command('cat {0}/{1} | grep \'"{2}"\' '
                                                   .format(self.base_cb_path,
                                                           self.check_in_file,
@@ -147,7 +147,7 @@ class cbstatsTests(CliBaseTest):
                                  Please check the output of remote_util")
 
     def _verify_direct_client_stats(self, bucket, command, output):
-        mc_conn = MemcachedClientHelper.direct_client(self.master,
+        mc_conn = MemcachedClientHelper.direct_client(self.main,
                                                       bucket.name, self.timeout)
         for line in output:
             stats = line.rsplit(":", 1)

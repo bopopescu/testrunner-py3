@@ -43,7 +43,7 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
             self.set_backfill_directory = self.input.param("set_backfill_directory", True)
             self.change_directory = self.input.param("change_directory", False)
             self.reset_settings = self.input.param("reset_settings", False)
-            self.curl_url = "http://%s:%s/settings/querySettings" % (self.master.ip, self.master.port)
+            self.curl_url = "http://%s:%s/settings/querySettings" % (self.main.ip, self.main.port)
         if self.feature == "xattrs":
             self.system_xattr_data = []
             self.user_xattr_data = []
@@ -54,12 +54,12 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
             self.jira_error_msg ="Errorevaluatingprojection.-cause:URLendpointisn'twhitelistedhttps://jira.atlassian." \
                                  "com/rest/api/latest/issue/JRA-9.PleasemakesuretowhitelisttheURLontheUI."
             self.cbqpath = '%scbq' % self.path + " -e %s:%s -q -u %s -p %s" \
-                                                 % (self.master.ip, self.n1ql_port, self.rest.username, self.rest.password)
+                                                 % (self.main.ip, self.n1ql_port, self.rest.username, self.rest.password)
         if self.feature == "auditing":
             self.audit_codes = [28672, 28673, 28674, 28675, 28676, 28677, 28678, 28679, 28680, 28681,
                                 28682, 28683, 28684, 28685, 28686, 28687, 28688]
             self.unauditedID = self.input.param("unauditedID", "")
-            self.audit_url = "http://%s:%s/settings/audit" % (self.master.ip, self.master.port)
+            self.audit_url = "http://%s:%s/settings/audit" % (self.main.ip, self.main.port)
             self.filter = self.input.param("filter", False)
         self.log.info("==============  QueriesUpgradeTests setup has completed ==============")
 
@@ -147,11 +147,11 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
 
         if self.upgrade_type == "online_with_failover":
             # graceful failover, upgrade, full recovery
-            self.master = remaining_servers[0]
+            self.main = remaining_servers[0]
             self.online_upgrade_with_failover(mixed_servers)
 
-        # set master to the upgraded server for mixed mode tests, run_cbq_query executes against master
-        self.master = mixed_servers[0]
+        # set main to the upgraded server for mixed mode tests, run_cbq_query executes against main
+        self.main = mixed_servers[0]
         self.log.info("upgraded {0} servers: {1}".format(str(len(mixed_servers)), str(mixed_servers)))
         self.log.info("cluster is now in mixed mode")
 
@@ -235,12 +235,12 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
         for server in upgrade_servers:
             self.log.info("upgrading: {0}".format(str(server)))
             participating_servers = [s for s in self.servers]
-            failover_task = self.cluster.async_failover([self.master], failover_nodes=[server], graceful=False)
+            failover_task = self.cluster.async_failover([self.main], failover_nodes=[server], graceful=False)
             failover_task.result()
             upgrade_th = self._async_update(self.upgrade_versions[0], [server])
             for th in upgrade_th:
                 th.join()
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             nodes_all = rest.node_statuses()
             for cluster_node in nodes_all:
                 if cluster_node.ip == server.ip:
@@ -375,7 +375,7 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
 
     # test_all_access_true from tuq_curl_whitelist.py
     def run_test_all_access_true(self):
-        self.rest.create_whitelist(self.master, {"all_access": True,
+        self.rest.create_whitelist(self.main, {"all_access": True,
                                                  "allowed_urls": ["blahahahahaha"], "disallowed_urls": ["fake"]})
         curl_output = self.shell.execute_command("%s https://jira.atlassian.com/rest/api/latest/issue/JRA-9"
                                                  % self.curl_path)
@@ -386,7 +386,7 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
         actual_curl = self.convert_to_json(curl)
         self.assertEqual(actual_curl['results'][0]['$1'], expected_curl)
 
-        self.rest.create_whitelist(self.master, {"all_access": True,
+        self.rest.create_whitelist(self.main, {"all_access": True,
                                                  "allowed_urls": None,
                                                  "disallowed_urls": None})
         curl = self.shell.execute_commands_inside(self.cbqpath, query, '', '', '', '', '')
@@ -395,7 +395,7 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
 
     # test_allowed_url from tuq_curl_whitelist.py
     def run_test_allowed_url(self):
-        self.rest.create_whitelist(self.master, {"all_access": False, "allowed_urls": ["https://maps.googleapis.com"]})
+        self.rest.create_whitelist(self.main, {"all_access": False, "allowed_urls": ["https://maps.googleapis.com"]})
 
         url = "'https://jira.atlassian.com/rest/api/latest/issue/JRA-9'"
         query="select curl("+ url +")"
@@ -418,7 +418,7 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
 
     # test_disallowed_url from tuq_curl_whitelist.py
     def run_test_disallowed_url(self):
-        self.rest.create_whitelist(self.master, {"all_access": False, "disallowed_urls": ["https://maps.googleapis.com"]})
+        self.rest.create_whitelist(self.main, {"all_access": False, "disallowed_urls": ["https://maps.googleapis.com"]})
 
         url = "'https://jira.atlassian.com/rest/api/latest/issue/JRA-9'"
         query="select curl("+ url +")"
@@ -513,26 +513,26 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
 
     def run_test_queryEvents(self):
         # required for local testing: uncomment below
-        self.ipAddress = self.master.ip
+        self.ipAddress = self.main.ip
         #self.ipAddress = self.getLocalIPAddress()
         # self.eventID = self.input.param('id', None)
-        auditTemp = audit(host=self.master)
+        auditTemp = audit(host=self.main)
         currentState = auditTemp.getAuditStatus()
-        self.log.info("Current status of audit on ip - {0} is {1}".format(self.master.ip, currentState))
+        self.log.info("Current status of audit on ip - {0} is {1}".format(self.main.ip, currentState))
         if not currentState:
             self.log.info("Enabling Audit ")
             auditTemp.setAuditEnable('true')
             self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         self.setupLDAPSettings(rest)
         query_type = self.op_type
-        user = self.master.rest_username
+        user = self.main.rest_username
         source = 'ns_server'
         if query_type == 'select':
             if self.filter:
                 self.execute_filtered_query()
-            self.run_cbq_query(server=self.master, query="SELECT * FROM default LIMIT 100")
-            expectedResults = {'node':'%s:%s' % (self.master.ip, self.master.port), 'status': 'success', 'isAdHoc': True,
+            self.run_cbq_query(server=self.main, query="SELECT * FROM default LIMIT 100")
+            expectedResults = {'node':'%s:%s' % (self.main.ip, self.main.port), 'status': 'success', 'isAdHoc': True,
                                'name': 'SELECT statement', 'real_userid': {'source': source, 'user': user},
                                'statement': 'SELECT * FROM default LIMIT 100',
                                'userAgent': 'Python-httplib2/$Rev: 259 $', 'id': self.eventID,
@@ -540,10 +540,10 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
         elif query_type == 'insert':
             if self.filter:
                 self.execute_filtered_query()
-            self.run_cbq_query(server=self.master, query='INSERT INTO default ( KEY, VALUE ) VALUES ("1",{ "order_id": "1", "type": '
+            self.run_cbq_query(server=self.main, query='INSERT INTO default ( KEY, VALUE ) VALUES ("1",{ "order_id": "1", "type": '
                                      '"order", "customer_id":"24601", "total_price": 30.3, "lineitems": '
                                      '[ "11", "12", "13" ] })')
-            expectedResults = {'node': '%s:%s' % (self.master.ip, self.master.port), 'status': 'success', 'isAdHoc': True,
+            expectedResults = {'node': '%s:%s' % (self.main.ip, self.main.port), 'status': 'success', 'isAdHoc': True,
                                'name': 'INSERT statement', 'real_userid': {'source': source, 'user': user},
                                'statement': 'INSERT INTO default ( KEY, VALUE ) VALUES ("1",{ "order_id": "1", "type": '
                                             '"order", "customer_id":"24601", "total_price": 30.3, "lineitems": '
@@ -556,9 +556,9 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
             if self.filter:
                 self.checkFilter(self.unauditedID, self.servers[1])
         else:
-            self.checkConfig(self.eventID, self.master, expectedResults, n1ql_audit=True)
+            self.checkConfig(self.eventID, self.main, expectedResults, n1ql_audit=True)
             if self.filter:
-                self.checkFilter(self.unauditedID, self.master)
+                self.checkFilter(self.unauditedID, self.main)
 
     def getLocalIPAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -702,14 +702,14 @@ class QueriesUpgradeTests(QueryTests, NewUpgradeBaseTest):
         self.run_xattrs_query(query, index_statement, '_system3', 'idx18', 'default', xattr_data=self.system_xattr_data)
 
     def reload_data(self):
-        self._all_buckets_delete(self.master)
+        self._all_buckets_delete(self.main)
         self._bucket_creation()
         self.gens_load = self.gen_docs(self.docs_per_day)
         self.load(self.gens_load, batch_size=1000, flag=self.item_flag)
         self.create_primary_index_for_3_0_and_greater()
 
     def create_xattr_data(self, type="system"):
-        cluster = Cluster('couchbase://'+str(self.master.ip))
+        cluster = Cluster('couchbase://'+str(self.main.ip))
         authenticator = PasswordAuthenticator(self.username, self.password)
         cluster.authenticate(authenticator)
         cb = cluster.open_bucket('default')

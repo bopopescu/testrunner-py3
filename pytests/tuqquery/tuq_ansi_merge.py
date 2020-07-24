@@ -8,7 +8,7 @@ class QueryANSIMERGETests(QueryTests):
         self.log.info("==============  QueryANSIMERGETests setup has started ==============")
         self.assertTrue(len(self.buckets) >= 2, 'All tests need at least two buckets to run')
         for bucket in self.buckets:
-            self.cluster.bucket_flush(self.master, bucket=bucket,
+            self.cluster.bucket_flush(self.main, bucket=bucket,
                                   timeout=self.wait_timeout * 5)
         self.log.info("==============  QueryANSIMERGETests setup has completed ==============")
         self.wait_for_all_indexers_ready()

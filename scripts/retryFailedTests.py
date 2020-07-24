@@ -23,7 +23,7 @@ def main():
     parser.add_option('-s', '--suite', dest='suite', default="12hour", help='default: %default')
     parser.add_option('-c', '--component', dest='component', default=None, help='default: %default')
     parser.add_option('-S', '--serverPoolId', dest='serverPoolId', default='regression', help='default: %default')
-    parser.add_option('-b', '--branch', dest='branch', default='master', help='default: %default')
+    parser.add_option('-b', '--branch', dest='branch', default='main', help='default: %default')
     parser.add_option('--dry', action="store_true", dest="dry", default=False, help='dry run the jobs: %default')
 
     options, args = parser.parse_args()
@@ -119,5 +119,5 @@ def getSubcomponent(build_id, options):
 if __name__ == "__main__":
     main()
     #getSubcomponent()
-    # param={'version_number': '6.0.0-1680', 'serverPoolId': 'regression', 'component': 'eventing', 'token': 'extended_sanity', 'branch': 'master', 'subcomponent': 'volume,dataset', 'suite': '12hour', 'OS': 'centos'}
+    # param={'version_number': '6.0.0-1680', 'serverPoolId': 'regression', 'component': 'eventing', 'token': 'extended_sanity', 'branch': 'main', 'subcomponent': 'volume,dataset', 'suite': '12hour', 'OS': 'centos'}
     # triggerJob(param)

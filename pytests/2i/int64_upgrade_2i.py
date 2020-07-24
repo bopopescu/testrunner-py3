@@ -92,7 +92,7 @@ class UpgradeSecondaryIndexInt64(UpgradeSecondaryIndex):
             node_services_list = node_rest.get_nodes_services()[node_info]
             if "index" in node_services_list:
                 self._create_equivalent_indexes(node)
-            failover_task = self.cluster.async_failover([self.master], failover_nodes=[node], graceful=False)
+            failover_task = self.cluster.async_failover([self.main], failover_nodes=[node], graceful=False)
             failover_task.result()
             self.sleep(100)
             log.info("Node Failed over...")
@@ -101,7 +101,7 @@ class UpgradeSecondaryIndexInt64(UpgradeSecondaryIndex):
                 th.join()
             log.info("==== Upgrade Complete ====")
             self.sleep(120)
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             nodes_all = rest.node_statuses()
             for cluster_node in nodes_all:
                 if cluster_node.ip == node.ip:
@@ -222,12 +222,12 @@ class UpgradeSecondaryIndexInt64(UpgradeSecondaryIndex):
             i += 1
             old_servers.append(swap_server)
             old_servers.remove(node)
-            if (self.master not in old_servers) and ("kv" in service_on_node):
-                self.master = swap_server
+            if (self.main not in old_servers) and ("kv" in service_on_node):
+                self.main = swap_server
             swap_server = node
             self.n1ql_node = self.get_nodes_from_services_map(
-                service_type="n1ql", master=old_servers[0])
-            log.info("Master : %s", self.master)
+                service_type="n1ql", main=old_servers[0])
+            log.info("Main : %s", self.main)
 
         log.info("===== Nodes Swapped with Upgraded versions =====")
         self.upgrade_servers = self.nodes_in_list
@@ -390,7 +390,7 @@ class UpgradeSecondaryIndexInt64(UpgradeSecondaryIndex):
             self._update_document(doc["_id"], doc)
 
     def _update_document(self, key, document):
-        url = 'couchbase://{ip}/default'.format(ip=self.master.ip)
+        url = 'couchbase://{ip}/default'.format(ip=self.main.ip)
         if self.upgrade_to.startswith("4"):
             bucket = Bucket(url)
         else:

@@ -17,19 +17,19 @@ class basic_collections(BaseTestCase):
         self.input = TestInputSingleton.input
         self.default_bucket_name = self.input.param("default_bucket_name", "default")
         self.servers = self.input.servers
-        self.master = self.servers[0]
+        self.main = self.servers[0]
         self.use_rest = self.input.param("use_rest", True)
         self.use_cli = self.input.param("use_cli", False)
-        self.rest = Collections_Rest(self.master)
-        self.cli = CouchbaseCLI(self.master, self.master.rest_username, self.master.rest_password)
+        self.rest = Collections_Rest(self.main)
+        self.cli = CouchbaseCLI(self.main, self.main.rest_username, self.main.rest_password)
         self.cli.enable_dp()
-        RestConnection(self.master).delete_all_buckets()
-        RestConnection(self.master).create_bucket(bucket=self.default_bucket_name,
+        RestConnection(self.main).delete_all_buckets()
+        RestConnection(self.main).create_bucket(bucket=self.default_bucket_name,
                                ramQuotaMB=256,
                                proxyPort=11220)
 
     def tearDown(self):
-        RestConnection(self.master).delete_all_buckets()
+        RestConnection(self.main).delete_all_buckets()
 
     def test_valid_scope_name(self):
         # epengine.basic_collections.basic_collections.test_valid_scope_name
@@ -106,8 +106,8 @@ class basic_collections(BaseTestCase):
         self.sleep(10)
 
         # create memcached client
-        mc = MemcachedClient(self.master.ip, 11210)
-        mc.sasl_auth_plain(self.master.rest_username, self.master.rest_password)
+        mc = MemcachedClient(self.main.ip, 11210)
+        mc.sasl_auth_plain(self.main.rest_username, self.main.rest_password)
 
         # enable collection and get collections
         mc.enable_collections()

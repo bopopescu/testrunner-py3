@@ -21,8 +21,8 @@ class SysCatalogTests(QueryTests):
         if self.input.tuq_client and "client" in self.input.tuq_client:
             host = self.input.tuq_client
         else:
-            host = self.master.ip
-        #host = (self.master.ip, self.input.tuq_client)[self.input.tuq_client and "client" in self.input.tuq_client]
+            host = self.main.ip
+        #host = (self.main.ip, self.input.tuq_client)[self.input.tuq_client and "client" in self.input.tuq_client]
         if self.ipv6:
             host = 'http://[::1]'
         elif self.version == 'sherlock':
@@ -48,7 +48,7 @@ class SysCatalogTests(QueryTests):
             self.assertEqual(res['namespaces']['id'], res['namespaces']['name'],
                         "Id and url don't match")
             self.assertTrue(res['namespaces']['datastore_id'].find(host) != -1 or\
-                            res['namespaces']['datastore_id'].find(self.master.ip) != -1,
+                            res['namespaces']['datastore_id'].find(self.main.ip) != -1,
                             "Expected: %s, actual: %s" % (host, result))
 
     def test_negative_buckets(self):

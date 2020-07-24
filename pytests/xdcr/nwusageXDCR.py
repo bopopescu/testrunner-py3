@@ -14,9 +14,9 @@ class nwusage(XDCRNewBaseTest):
     def setUp(self):
         super(nwusage, self).setUp()
         self.src_cluster = self.get_cb_cluster_by_name('C1')
-        self.src_master = self.src_cluster.get_master_node()
+        self.src_main = self.src_cluster.get_main_node()
         self.dest_cluster = self.get_cb_cluster_by_name('C2')
-        self.dest_master = self.dest_cluster.get_master_node()
+        self.dest_main = self.dest_cluster.get_main_node()
         self.cluster = Cluster()
         self.num_src_nodes = len(self.src_cluster.get_nodes())
         self.num_dest_nodes = len(self.dest_cluster.get_nodes())
@@ -30,10 +30,10 @@ class nwusage(XDCRNewBaseTest):
 
     def _set_nwusage_limit(self, cluster, nw_limit):
         repl_id = cluster.get_remote_clusters()[0].get_replications()[0].get_repl_id()
-        shell = RemoteMachineShellConnection(cluster.get_master_node())
+        shell = RemoteMachineShellConnection(cluster.get_main_node())
         repl_id = str(repl_id).replace('/', '%2F')
         self.log.info("Network bandwidth is throttled at {0} MB".format(nw_limit))
-        base_url = "http://" + cluster.get_master_node().ip + ":8091/settings/replications/" + repl_id
+        base_url = "http://" + cluster.get_main_node().ip + ":8091/settings/replications/" + repl_id
         command = "curl -X POST -u Administrator:password " + base_url + " -d networkUsageLimit=" + str(nw_limit)
         output, error = shell.execute_command(command)
         shell.log_command_output(output, error)
@@ -125,7 +125,7 @@ class nwusage(XDCRNewBaseTest):
         else:
             self.fail("Bandwidth Throttler not enabled!")
         # Check if large docs are not getting stuck
-        matches, src_count = NodeHelper.check_goxdcr_log(self.src_master, "The connection is ruined",
+        matches, src_count = NodeHelper.check_goxdcr_log(self.src_main, "The connection is ruined",
                                                          print_matches=True, timeout=10)
         if src_count:
             for item in matches:
@@ -158,7 +158,7 @@ class nwusage(XDCRNewBaseTest):
         self.perform_update_delete()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=self.num_src_nodes)
 
     def test_nwusage_with_bidirection(self):
@@ -181,9 +181,9 @@ class nwusage(XDCRNewBaseTest):
         self.perform_update_delete()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), nw_limit=src_nw_limit,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), nw_limit=src_nw_limit,
                                      no_of_nodes=self.num_src_nodes)
-        self._verify_bandwidth_usage(node=self.dest_cluster.get_master_node(), nw_limit=dest_nw_limit,
+        self._verify_bandwidth_usage(node=self.dest_cluster.get_main_node(), nw_limit=dest_nw_limit,
                                      no_of_nodes=self.num_dest_nodes)
 
     def test_nwusage_with_unidirection_pause_resume(self):
@@ -206,7 +206,7 @@ class nwusage(XDCRNewBaseTest):
         self._wait_for_replication_to_catchup()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=self.num_src_nodes)
 
     def test_nwusage_with_bidirection_pause_resume(self):
@@ -234,9 +234,9 @@ class nwusage(XDCRNewBaseTest):
         self._wait_for_replication_to_catchup()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=self.num_src_nodes)
-        self._verify_bandwidth_usage(node=self.dest_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.dest_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=self.num_dest_nodes)
 
     def test_nwusage_with_unidirection_in_parallel(self):
@@ -255,7 +255,7 @@ class nwusage(XDCRNewBaseTest):
         self._wait_for_replication_to_catchup()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=self.num_src_nodes)
 
     def test_nwusage_with_bidirection_in_parallel(self):
@@ -277,9 +277,9 @@ class nwusage(XDCRNewBaseTest):
         self._wait_for_replication_to_catchup()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=self.num_src_nodes)
-        self._verify_bandwidth_usage(node=self.dest_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.dest_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=self.num_dest_nodes)
 
     def test_nwusage_with_rebalance_in(self):
@@ -298,7 +298,7 @@ class nwusage(XDCRNewBaseTest):
         self.perform_update_delete()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=no_of_nodes)
 
     def test_nwusage_with_rebalance_out(self):
@@ -317,7 +317,7 @@ class nwusage(XDCRNewBaseTest):
         self.perform_update_delete()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=no_of_nodes)
 
     def test_nwusage_reset_to_zero(self):
@@ -333,16 +333,16 @@ class nwusage(XDCRNewBaseTest):
 
         self.sleep(30)
         self._set_nwusage_limit(self.src_cluster, 0)
-        event_time = self._get_current_time(self.src_cluster.get_master_node())
+        event_time = self._get_current_time(self.src_cluster.get_main_node())
         self.log.info("Network limit reset to 0 at {0}".format(event_time))
 
         for task in tasks:
             task.result()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.dest_cluster.get_master_node(), nw_limit=nw_limit,
+        self._verify_bandwidth_usage(node=self.dest_cluster.get_main_node(), nw_limit=nw_limit,
                                      no_of_nodes=self.num_dest_nodes, end_time=event_time)
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), nw_limit=0,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), nw_limit=0,
                                      no_of_nodes=self.num_src_nodes,
                                      event_time=event_time, nw_usage="0")
 
@@ -363,22 +363,22 @@ class nwusage(XDCRNewBaseTest):
         self.sleep(15)
 
         self.src_cluster.failover_and_rebalance_nodes()
-        failover_time = self._get_current_time(self.src_cluster.get_master_node())
+        failover_time = self._get_current_time(self.src_cluster.get_main_node())
         self.log.info("Node failed over at {0}".format(failover_time))
 
         self.sleep(15)
 
         self.src_cluster.rebalance_in()
-        node_back_time = self._get_current_time(self.src_cluster.get_master_node())
+        node_back_time = self._get_current_time(self.src_cluster.get_main_node())
         self.log.info("Node added back at {0}".format(node_back_time))
 
         self._wait_for_replication_to_catchup()
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), end_time=failover_time)
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), event_time=failover_time,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), end_time=failover_time)
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), event_time=failover_time,
                                      end_time=node_back_time, no_of_nodes=self.num_src_nodes - 1)
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), event_time=node_back_time,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), event_time=node_back_time,
                                      no_of_nodes=self.num_src_nodes)
 
     def test_nwusage_with_hard_failover_and_bwthrottle_enabled_later(self):
@@ -401,21 +401,21 @@ class nwusage(XDCRNewBaseTest):
 
         nw_limit = self._input.param("nw_limit", self._get_nwusage_limit())
         self._set_nwusage_limit(self.src_cluster, nw_limit * self.num_src_nodes)
-        bw_enable_time = self._get_current_time(self.src_cluster.get_master_node())
+        bw_enable_time = self._get_current_time(self.src_cluster.get_main_node())
         self.log.info("Bandwidth throttler enabled at {0}".format(bw_enable_time))
 
         self.sleep(60)
 
         self.src_cluster.rebalance_in()
-        node_back_time = self._get_current_time(self.src_cluster.get_master_node())
+        node_back_time = self._get_current_time(self.src_cluster.get_main_node())
         self.log.info("Node added back at {0}".format(node_back_time))
 
         self._wait_for_replication_to_catchup(timeout=600)
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), event_time=bw_enable_time,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), event_time=bw_enable_time,
                                      end_time=node_back_time, no_of_nodes=self.num_src_nodes - 1)
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), no_of_nodes=self.num_src_nodes,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), no_of_nodes=self.num_src_nodes,
                                      event_time=node_back_time)
 
     def test_nwusage_with_auto_failover_and_bwthrottle_enabled(self):
@@ -427,7 +427,7 @@ class nwusage(XDCRNewBaseTest):
         nw_limit = self._input.param("nw_limit", self._get_nwusage_limit())
         self._set_nwusage_limit(self.src_cluster, nw_limit * self.num_src_nodes)
 
-        src_conn = RestConnection(self.src_cluster.get_master_node())
+        src_conn = RestConnection(self.src_cluster.get_main_node())
         src_conn.update_autofailover_settings(enabled=True, timeout=30)
 
         self.src_cluster.pause_all_replications()
@@ -444,7 +444,7 @@ class nwusage(XDCRNewBaseTest):
         self.sleep(30)
         task = self.cluster.async_rebalance(self.src_cluster.get_nodes(), [], [])
         task.result()
-        failover_time = self._get_current_time(self.src_cluster.get_master_node())
+        failover_time = self._get_current_time(self.src_cluster.get_main_node())
         self.log.info("Node auto failed over at {0}".format(failover_time))
         FloatingServers._serverlist.append(self._input.servers[1])
 
@@ -454,16 +454,16 @@ class nwusage(XDCRNewBaseTest):
         shell.disable_firewall()
         self.sleep(45)
         self.src_cluster.rebalance_in()
-        node_back_time = self._get_current_time(self.src_cluster.get_master_node())
+        node_back_time = self._get_current_time(self.src_cluster.get_main_node())
         self.log.info("Node added back at {0}".format(node_back_time))
 
         self._wait_for_replication_to_catchup(timeout=600)
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), end_time=failover_time, no_of_nodes=3)
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), event_time=failover_time,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), end_time=failover_time, no_of_nodes=3)
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), event_time=failover_time,
                                      end_time=node_back_time, no_of_nodes=2)
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), event_time=node_back_time, no_of_nodes=3)
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), event_time=node_back_time, no_of_nodes=3)
 
     def test_nwusage_with_auto_failover_and_bwthrottle_enabled_later(self):
         self.setup_xdcr()
@@ -492,7 +492,7 @@ class nwusage(XDCRNewBaseTest):
 
         nw_limit = self._input.param("nw_limit", self._get_nwusage_limit())
         self._set_nwusage_limit(self.src_cluster, nw_limit * self.num_src_nodes)
-        bw_enable_time = self._get_current_time(self.src_cluster.get_master_node())
+        bw_enable_time = self._get_current_time(self.src_cluster.get_main_node())
         self.log.info("Bandwidth throttler enabled at {0}".format(bw_enable_time))
 
         self.sleep(60)
@@ -501,13 +501,13 @@ class nwusage(XDCRNewBaseTest):
         shell.disable_firewall()
         self.sleep(30)
         self.src_cluster.rebalance_in()
-        node_back_time = self._get_current_time(self.src_cluster.get_master_node())
+        node_back_time = self._get_current_time(self.src_cluster.get_main_node())
         self.log.info("Node added back at {0}".format(node_back_time))
 
         self._wait_for_replication_to_catchup(timeout=600)
 
         self.verify_results()
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), event_time=bw_enable_time,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), event_time=bw_enable_time,
                                      end_time=node_back_time, no_of_nodes=self.num_src_nodes)
-        self._verify_bandwidth_usage(node=self.src_cluster.get_master_node(), event_time=node_back_time,
+        self._verify_bandwidth_usage(node=self.src_cluster.get_main_node(), event_time=node_back_time,
                                      no_of_nodes=self.num_src_nodes + 1)

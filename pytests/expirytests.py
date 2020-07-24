@@ -33,13 +33,13 @@ class ExpiryTests(unittest.TestCase):
 
     def setUp(self):
         self.log = logger.Logger.get_logger()
-        self.master = TestInputSingleton.input.servers[0]
-        ClusterOperationHelper.cleanup_cluster([self.master])
-        BucketOperationHelper.delete_all_buckets_or_assert([self.master], self)
+        self.main = TestInputSingleton.input.servers[0]
+        ClusterOperationHelper.cleanup_cluster([self.main])
+        BucketOperationHelper.delete_all_buckets_or_assert([self.main], self)
 
         self._bucket_name = 'default'
 
-        serverInfo = self.master
+        serverInfo = self.main
 
         rest = RestConnection(serverInfo)
         info = rest.get_nodes_self()
@@ -51,11 +51,11 @@ class ExpiryTests(unittest.TestCase):
 
         # Add built-in user
         testuser = [{'id': 'cbadminbucket', 'name': 'cbadminbucket', 'password': 'password'}]
-        RbacBase().create_user_source(testuser, 'builtin', self.master)
+        RbacBase().create_user_source(testuser, 'builtin', self.main)
         
         # Assign user to role
         role_list = [{'id': 'cbadminbucket', 'name': 'cbadminbucket', 'roles': 'admin'}]
-        RbacBase().add_user_role(role_list, RestConnection(self.master), 'builtin')
+        RbacBase().add_user_role(role_list, RestConnection(self.main), 'builtin')
         
         self.log.info("-->create_bucket: {},{},{}".format(self._bucket_name,bucket_ram,info.memcached))
         rest.create_bucket(bucket=self._bucket_name,
@@ -94,7 +94,7 @@ class ExpiryTests(unittest.TestCase):
     #e1
     def test_expired_keys(self):
         self.log.info("--> in test_expired_keys...")
-        serverInfo = self.master
+        serverInfo = self.main
         client = self.client
         expirations = [2, 5, 10]
         for expiry in expirations:
@@ -132,7 +132,7 @@ class ExpiryTests(unittest.TestCase):
     # 4) do a dump with tap.py and count number of deletes sent (should be 0)
     def test_expired_keys_tap(self):
 
-        server = self.master
+        server = self.main
         # callback to track deletes
         queue = Queue(maxsize=10000)
         listener = TapListener(queue, server, "CMD_TAP_DELETE")
@@ -183,10 +183,10 @@ class ExpiryTests(unittest.TestCase):
                 listener.aborted = True
 
     def tearDown(self):
-        BucketOperationHelper.delete_all_buckets_or_assert(servers=[self.master], test_case=self)
+        BucketOperationHelper.delete_all_buckets_or_assert(servers=[self.main], test_case=self)
         # Remove rbac user in teardown
         role_del = ['cbadminbucket']
-        RbacBase().remove_user_role(role_del, RestConnection(self.master))
+        RbacBase().remove_user_role(role_del, RestConnection(self.main))
         self._log_finish()
 
 

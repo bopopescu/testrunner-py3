@@ -26,7 +26,7 @@ class ImportExportTests(CliBaseTest):
     def setUp(self):
         super(ImportExportTests, self).setUp()
         self.cluster_helper = Cluster()
-        self.ex_path = self.tmp_path + "export{0}/".format(self.master.ip)
+        self.ex_path = self.tmp_path + "export{0}/".format(self.main.ip)
         self.num_items = self.input.param("items", 1000)
         self.localhost = self.input.param("localhost", False)
         self.json_create_gen = JsonDocGenerator("imex", op_type="create",
@@ -113,9 +113,9 @@ class ImportExportTests(CliBaseTest):
         updated = self.input.param("updated", False)
         update_field = self.input.param("update_field", None)
         path = self.input.param("path", None)
-        self.ex_path = self.tmp_path + "export{0}/".format(self.master.ip)
-        master = self.servers[0]
-        server = copy.deepcopy(master)
+        self.ex_path = self.tmp_path + "export{0}/".format(self.main.ip)
+        main = self.servers[0]
+        server = copy.deepcopy(main)
 
         if username is None:
             username = server.rest_username
@@ -126,7 +126,7 @@ class ImportExportTests(CliBaseTest):
         total_items = self.num_items
         for bucket in self.buckets:
             doc_create_gen = copy.deepcopy(self.json_create_gen)
-            self.cluster.load_gen_docs(self.master, bucket.name,
+            self.cluster.load_gen_docs(self.main, bucket.name,
                                                doc_create_gen, bucket.kvs[1], "create", compression=self.sdk_compression)
             self.verify_cluster_stats(self.servers[:self.nodes_init], max_verify=total_items)
             if delete_percent is not None:
@@ -134,13 +134,13 @@ class ImportExportTests(CliBaseTest):
                 doc_delete_gen = copy.deepcopy(self.json_delete_gen)
                 doc_delete_gen.end = int(self.num_items) * int(delete_percent) / 100
                 total_items -= doc_delete_gen.end
-                self.cluster.load_gen_docs(self.master, bucket.name, doc_delete_gen,
+                self.cluster.load_gen_docs(self.main, bucket.name, doc_delete_gen,
                                                             bucket.kvs[1], "delete", compression=self.sdk_compression)
             if updated and update_field is not None:
                 self.log.info("Start update data")
                 doc_updated_gen = copy.deepcopy(self.json_create_gen)
                 doc_updated_gen.update(fields_to_update=update_field)
-                self.cluster.load_gen_docs(self.master, bucket.name, doc_updated_gen,
+                self.cluster.load_gen_docs(self.main, bucket.name, doc_updated_gen,
                                                              bucket.kvs[1], "update", compression=self.sdk_compression)
             self.verify_cluster_stats(self.servers[:self.nodes_init], max_verify=total_items)
             """ remove previous export directory at tmp dir and re-create it
@@ -148,10 +148,10 @@ class ImportExportTests(CliBaseTest):
                 in windows: /cygdrive/c/tmp/export """
             self.log.info("remove old export dir in %s" % self.tmp_path)
             self.shell.execute_command("rm -rf {0}export{1} "\
-                                       .format(self.tmp_path, self.master.ip))
+                                       .format(self.tmp_path, self.main.ip))
             self.log.info("create export dir in {0}".format(self.tmp_path))
             self.shell.execute_command("mkdir {0}export{1}"\
-                                       .format(self.tmp_path, self.master.ip))
+                                       .format(self.tmp_path, self.main.ip))
             """ /opt/couchbase/bin/cbexport json -c localhost -u Administrator
                               -p password -b default -f list -o /tmp/test4.zip """
             export_file = self.ex_path + bucket.name
@@ -222,7 +222,7 @@ class ImportExportTests(CliBaseTest):
             new_password = new_password.replace("hash", "#")
         if "bang" in new_password:
             new_password = new_password.replace("bang", "!")
-        rest_password = self.master.rest_password
+        rest_password = self.main.rest_password
         command = "setting-cluster"
         password_changed = False
         try:
@@ -231,11 +231,11 @@ class ImportExportTests(CliBaseTest):
                 self.fail("Need to pass param 'password' to run this test")
             options_cli = "-u Administrator -p %s --cluster-password '%s' "\
                                         % (rest_password, new_password)
-            output, _ = self.shell.couchbase_cli(command, self.master.ip, options_cli)
+            output, _ = self.shell.couchbase_cli(command, self.main.ip, options_cli)
             if self._check_output("SUCCESS", output):
                 self.log.info("Password was changed to %s " % new_password)
                 password_changed = True
-                self.master.rest_password = new_password
+                self.main.rest_password = new_password
             else:
                 self.fail("Fail to change password cluster to %s" % new_password)
 
@@ -245,10 +245,10 @@ class ImportExportTests(CliBaseTest):
                 self.log.info("change password back to default in ini file")
                 options = "-u Administrator -p '%s' --cluster-password '%s' "\
                                            % (new_password, rest_password)
-                output, _ = self.shell.couchbase_cli(command, self.master.ip, options)
+                output, _ = self.shell.couchbase_cli(command, self.main.ip, options)
                 if self._check_output("SUCCESS", output):
                     self.log.info("Password was changed back to %s " % rest_password)
-                    self.master.rest_password = rest_password
+                    self.main.rest_password = rest_password
                 else:
                     self.fail("Fail to change password back to %s" % rest_password)
 
@@ -292,9 +292,9 @@ class ImportExportTests(CliBaseTest):
                     elif self.test_type == "export":
                         self.test_type = "cbexport"
                         self.shell.execute_command("rm -rf {0}export{1}"\
-                                                   .format(self.tmp_path, self.master.ip))
+                                                   .format(self.tmp_path, self.main.ip))
                         self.shell.execute_command("mkdir {0}export{1}"\
-                                                   .format(self.tmp_path, self.master.ip))
+                                                   .format(self.tmp_path, self.main.ip))
                         export_file = self.ex_path + bucket.name
                         if self.imex_type == "json":
                             if self.cmd_ext:
@@ -356,9 +356,9 @@ class ImportExportTests(CliBaseTest):
                                server.ip, new_port, options["docs"], bucket.name)
                         self.shell.execute_command(load_cmd)
                 self.shell.execute_command("rm -rf {0}export{1}"\
-                                           .format(self.tmp_path, self.master.ip))
+                                           .format(self.tmp_path, self.main.ip))
                 self.shell.execute_command("mkdir {0}export{1}"\
-                                           .format(self.tmp_path, self.master.ip))
+                                           .format(self.tmp_path, self.main.ip))
                 """ /opt/couchbase/bin/cbexport json -c localhost -u Administrator
                               -p password -b default -f list -o /tmp/test4.zip """
                 if len(self.buckets) >= 1:
@@ -428,9 +428,9 @@ class ImportExportTests(CliBaseTest):
         elif self.test_type == "export":
             cmd = "cbexport"
             self.shell.execute_command("rm -rf {0}export{1}"\
-                                       .format(self.tmp_path, self.master.ip))
+                                       .format(self.tmp_path, self.main.ip))
             self.shell.execute_command("mkdir {0}export{1}" \
-                                       .format(self.tmp_path, self.master.ip))
+                                       .format(self.tmp_path, self.main.ip))
             export_file = self.ex_path + "default"
             cmd_str = "%s%s%s %s %s %s %s Administrator %s password %s default "\
                                                              "  %s lines %s %s "\
@@ -618,9 +618,9 @@ class ImportExportTests(CliBaseTest):
             if self.include_key_flag:
                 include_flag = " --include-key"
             self.shell.execute_command("rm -rf {0}export{1}"\
-                                       .format(self.tmp_path, self.master.ip))
+                                       .format(self.tmp_path, self.main.ip))
             self.shell.execute_command("mkdir {0}export{1}"\
-                                       .format(self.tmp_path, self.master.ip))
+                                       .format(self.tmp_path, self.main.ip))
             if self.imex_type == "json":
                 for bucket in self.buckets:
                     self.log.info("load json to bucket %s " % bucket.name)
@@ -794,9 +794,9 @@ class ImportExportTests(CliBaseTest):
         import_method = self.input.param("import_method", "file://")
         if "url" in import_method:
             import_method = ""
-        self.ex_path = self.tmp_path + "export{0}/".format(self.master.ip)
-        master = self.servers[0]
-        server = copy.deepcopy(master)
+        self.ex_path = self.tmp_path + "export{0}/".format(self.main.ip)
+        main = self.servers[0]
+        server = copy.deepcopy(main)
 
         if username is None:
             username = server.rest_username
@@ -823,7 +823,7 @@ class ImportExportTests(CliBaseTest):
                                                              self.tmp_path_raw,
                                                              "Administrator",
                                                              "password",
-                                                             self.master)
+                                                             self.main)
             secure_port = "1"
             url_format = "s"
             if not self.no_cacert:
@@ -853,7 +853,7 @@ class ImportExportTests(CliBaseTest):
                                                        .format(self.cli_command_path,
                                                         "couchbase-cli", self.cmd_ext,
                                                         server.ip, bucket.name))
-                            self._load_all_buckets(self.master, kv_gen, "create", 0)
+                            self._load_all_buckets(self.main, kv_gen, "create", 0)
                         self.log.info("load sample data to bucket")
                         self.shell.execute_command(load_cmd)
             """ remove previous export directory at tmp dir and re-create it
@@ -861,16 +861,16 @@ class ImportExportTests(CliBaseTest):
                 in windows: /cygdrive/c/tmp/export """
             self.log.info("remove old export dir in %s" % self.tmp_path)
             self.shell.execute_command("rm -rf {0}export{1}"\
-                                       .format(self.tmp_path, self.master.ip))
+                                       .format(self.tmp_path, self.main.ip))
             self.log.info("create export dir in %s" % self.tmp_path)
             self.shell.execute_command("mkdir {0}export{1}"\
-                                       .format(self.tmp_path, self.master.ip))
+                                       .format(self.tmp_path, self.main.ip))
             if self.check_preload_keys:
                 for bucket in self.buckets:
-                    self.cluster_helper.wait_for_stats([self.master], bucket.name, "",
+                    self.cluster_helper.wait_for_stats([self.main], bucket.name, "",
                                                                 "ep_queue_size", "==", 0)
                     self.pre_imex_ops_keys = \
-                            RestConnection(self.master).get_active_key_count(bucket.name)
+                            RestConnection(self.main).get_active_key_count(bucket.name)
             """ /opt/couchbase/bin/cbexport json -c localhost -u Administrator
                               -p password -b default -f list -o /tmp/test4.zip """
             if len(self.buckets) >= 1:
@@ -889,13 +889,13 @@ class ImportExportTests(CliBaseTest):
                                      secure_port, username, password, bucket.name,
                                      self.format_type, secure_conn, export_file)
                     if self.dgm_run:
-                        res_status = stats_all_buckets[bucket.name].get_stats([self.master],
-                                     bucket, '', 'vb_active_perc_mem_resident')[self.master]
+                        res_status = stats_all_buckets[bucket.name].get_stats([self.main],
+                                     bucket, '', 'vb_active_perc_mem_resident')[self.main]
                         while int(res_status) > self.active_resident_threshold:
                             self.sleep(5)
-                            res_status = stats_all_buckets[bucket.name].get_stats([self.master],
+                            res_status = stats_all_buckets[bucket.name].get_stats([self.main],
                                          bucket, '',
-                                         'vb_active_perc_mem_resident')[self.master]
+                                         'vb_active_perc_mem_resident')[self.main]
                         if int(res_status) <= self.active_resident_threshold:
                             self.log.info("Clear terminal")
                             self.shell.execute_command('printf "\033c"')
@@ -1063,7 +1063,7 @@ class ImportExportTests(CliBaseTest):
                         """ disable auto compaction so that bucket could
                             go into dgm faster.
                         """
-                        RestConnection(self.master).disable_auto_compaction()
+                        RestConnection(self.main).disable_auto_compaction()
                         self.log.info("**** Load bucket to %s of active resident"\
                                           % self.active_resident_threshold)
                         self.shell.execute_command("{0}{1}{2} bucket-edit -c {3}:8091 "\
@@ -1072,14 +1072,14 @@ class ImportExportTests(CliBaseTest):
                                                        .format(self.cli_command_path,
                                                         "couchbase-cli", self.cmd_ext,
                                                         server.ip, bucket.name))
-                        self._load_all_buckets(self.master, kv_gen, "create", 0)
-                    self.cluster_helper.wait_for_stats([self.master], bucket.name, "",
+                        self._load_all_buckets(self.main, kv_gen, "create", 0)
+                    self.cluster_helper.wait_for_stats([self.main], bucket.name, "",
                                                              "ep_queue_size", "==", 0)
                     if self.check_preload_keys:
-                        self.cluster_helper.wait_for_stats([self.master], bucket.name, "",
+                        self.cluster_helper.wait_for_stats([self.main], bucket.name, "",
                                                                  "ep_queue_size", "==", 0)
                         self.pre_imex_ops_keys = \
-                            RestConnection(self.master).get_active_key_count(bucket.name)
+                            RestConnection(self.main).get_active_key_count(bucket.name)
 
                     self.log.info("Import data to bucket")
                     output, error = self.shell.execute_command(imp_cmd_str)
@@ -1125,9 +1125,9 @@ class ImportExportTests(CliBaseTest):
                         self._verify_import_data(options)
 
     def _verify_import_data(self, options):
-        self.buckets = RestConnection(self.master).get_buckets()
+        self.buckets = RestConnection(self.main).get_buckets()
         for bucket in self.buckets:
-            keys = RestConnection(self.master).get_active_key_count(bucket.name)
+            keys = RestConnection(self.main).get_active_key_count(bucket.name)
         skip_lines = 0
         if self.import_file and self.import_file.startswith("csv"):
             skip_lines = 1
@@ -1189,7 +1189,7 @@ class ImportExportTests(CliBaseTest):
                 cmd = "%scbexport%s %s -c %s -u %s -p '%s' -b %s -f %s -o %s"\
                               % (self.cli_command_path, self.cmd_ext,
                                  self.imex_type,
-                                 self.master.ip, "cbadminbucket", "password",
+                                 self.main.ip, "cbadminbucket", "password",
                                  "default", self.format_type, export_file_cmd)
                 output, error = self.shell.execute_command(cmd)
                 self.shell.log_command_output(output, error)
@@ -1237,12 +1237,12 @@ class ImportExportTests(CliBaseTest):
 
             if self.imex_type == "json":
                 self.log.info("Copy bucket data from remote to local")
-                if os.path.exists("/tmp/%s" % self.master.ip):
-                    shutil.rmtree("/tmp/%s" % self.master.ip)
-                os.makedirs("/tmp/%s" % self.master.ip)
+                if os.path.exists("/tmp/%s" % self.main.ip):
+                    shutil.rmtree("/tmp/%s" % self.main.ip)
+                os.makedirs("/tmp/%s" % self.main.ip)
                 self.shell.copy_file_remote_to_local(export_file,
-                                              "/tmp/%s/bucket_data" % self.master.ip)
-                with open("/tmp/%s/bucket_data" % self.master.ip) as f:
+                                              "/tmp/%s/bucket_data" % self.main.ip)
+                with open("/tmp/%s/bucket_data" % self.main.ip) as f:
                     bucket_data = f.read().splitlines()
                     bucket_data = [x.replace(" ", "") for x in bucket_data]
                     bucket_data = [x.rstrip(",") for x in bucket_data]
@@ -1255,17 +1255,17 @@ class ImportExportTests(CliBaseTest):
                 self.log.info("Compare source data and bucket data")
                 if sorted(src_data) == sorted(bucket_data):
                     self.log.info("Import data match bucket data")
-                    if os.path.exists("/tmp/%s" % self.master.ip):
-                        self.log.info("Remove data in slave")
-                        shutil.rmtree("/tmp/%s" % self.master.ip)
+                    if os.path.exists("/tmp/%s" % self.main.ip):
+                        self.log.info("Remove data in subordinate")
+                        shutil.rmtree("/tmp/%s" % self.main.ip)
                 else:
                     self.fail("Import data does not match bucket data")
             elif self.imex_type == "csv":
                 self.log.info("Verify csv import data")
-                shell = RemoteMachineShellConnection(self.master)
+                shell = RemoteMachineShellConnection(self.main)
                 curl_cmd = "curl -g -X GET -u Administrator:password " \
                       "http://%s:8091/pools/default/buckets/default/docs?" \
-                      "include_docs=false&skip=0" % self.master.ip
+                      "include_docs=false&skip=0" % self.main.ip
                 output, error = shell.execute_command(curl_cmd)
 
                 bucket_keys = ast.literal_eval(output[0])
@@ -1280,7 +1280,7 @@ class ImportExportTests(CliBaseTest):
                                   % src_data[x])
                     curl_cmd = "curl -g -X GET -u Administrator:password " \
                             "http://%s:8091/pools/default/buckets/default/docs/%d" \
-                               % (self.master.ip, x)
+                               % (self.main.ip, x)
                     if self.omit_empty:
                         empty_data_keys = [2, 6, 100, 500, 750, 888]
                         if x in empty_data_keys:
@@ -1324,18 +1324,18 @@ class ImportExportTests(CliBaseTest):
             found = self.shell.file_exists(self.ex_path, export_file_name)
             if found:
                 self.log.info("copy export file from remote to local")
-                if os.path.exists("/tmp/export{0}".format(self.master.ip)):
-                    shutil.rmtree("/tmp/export{0}".format(self.master.ip))
-                os.makedirs("/tmp/export{0}".format(self.master.ip))
+                if os.path.exists("/tmp/export{0}".format(self.main.ip)):
+                    shutil.rmtree("/tmp/export{0}".format(self.main.ip))
+                os.makedirs("/tmp/export{0}".format(self.main.ip))
                 self.shell.copy_file_remote_to_local(self.ex_path+export_file_name,
-                                                    "/tmp/export{0}/".format(self.master.ip) \
+                                                    "/tmp/export{0}/".format(self.main.ip) \
                                                     + export_file_name)
                 self.log.info("compare 2 json files")
                 if self.format_type == "lines":
                     sample_file = open("resources/imex/json_%s_lines" % options["docs"])
                     samples = sample_file.read().splitlines()
                     samples = [x.replace(" ", "") for x in samples]
-                    export_file = open("/tmp/export{0}/".format(self.master.ip)\
+                    export_file = open("/tmp/export{0}/".format(self.main.ip)\
                                                              + export_file_name)
 
                     exports = export_file.read().splitlines()
@@ -1376,15 +1376,15 @@ class ImportExportTests(CliBaseTest):
                             self.fail("export and sample json does not match")
                     sample_file.close()
                     export_file.close()
-                    self.log.info("remove file /tmp/export{0}".format(self.master.ip))
-                    shutil.rmtree("/tmp/export{0}".format(self.master.ip))
+                    self.log.info("remove file /tmp/export{0}".format(self.main.ip))
+                    shutil.rmtree("/tmp/export{0}".format(self.main.ip))
                 elif self.format_type == "list":
                     sample_file = open("resources/imex/json_list_%s_lines"\
                                                                  % options["docs"])
                     samples = sample_file.read()
                     samples = ast.literal_eval(samples)
                     samples.sort(key=lambda k: k['name'])
-                    export_file = open("/tmp/export{0}/".format(self.master.ip)\
+                    export_file = open("/tmp/export{0}/".format(self.main.ip)\
                                                              + export_file_name)
                     exports = export_file.read()
                     exports = ast.literal_eval(exports)
@@ -1403,8 +1403,8 @@ class ImportExportTests(CliBaseTest):
                         self.fail("export and sample json files did not match")
                     sample_file.close()
                     export_file.close()
-                    self.log.info("remove file /tmp/export{0}".format(self.master.ip))
-                    shutil.rmtree("/tmp/export{0}".format(self.master.ip))
+                    self.log.info("remove file /tmp/export{0}".format(self.main.ip))
+                    shutil.rmtree("/tmp/export{0}".format(self.main.ip))
             else:
                 file_exist = True
                 if self.secure_conn and self.no_cacert:

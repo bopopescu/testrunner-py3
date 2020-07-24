@@ -217,7 +217,7 @@ def execute_restart(restart_list, dispatcher_token, os, build, component, server
 
     restart_url = "http://qa.sc.couchbase.com/job/test_suite_dispatcher/buildWithParameters?token="+dispatcher_token+"" \
                   "&OS="+os.lower()+"&version_number="+build+"&suite=12hour&component="+component.lower()+"" \
-                  "&subcomponent="+restart_list+"&serverPoolId="+server_pool_id+"&addPoolId="+add_pool_id+"&branch=master"
+                  "&subcomponent="+restart_list+"&serverPoolId="+server_pool_id+"&addPoolId="+add_pool_id+"&branch=main"
     print(("#### URL ::"+restart_url+"::"))
 
     response = urllib.request.urlopen(restart_url)

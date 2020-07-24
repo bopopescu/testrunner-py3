@@ -805,11 +805,11 @@ class BaseSecondaryIndexingTests(QueryTests):
         status = rest.set_indexer_params("logLevel", loglevel)
 
     def wait_until_cluster_is_healthy(self):
-        master_node = self.master
-        if self.targetMaster:
+        main_node = self.main
+        if self.targetMain:
             if len(self.servers) > 1:
-                master_node = self.servers[1]
-        rest = RestConnection(master_node)
+                main_node = self.servers[1]
+        rest = RestConnection(main_node)
         is_cluster_healthy = False
         count = 0
         while not is_cluster_healthy and count < 10:
@@ -827,7 +827,7 @@ class BaseSecondaryIndexingTests(QueryTests):
         return is_cluster_healthy
 
     def wait_until_indexes_online(self, timeout=600):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         init_time = time.time()
         check = False
         next_time = init_time
@@ -847,7 +847,7 @@ class BaseSecondaryIndexingTests(QueryTests):
         return check
 
     def wait_until_specific_index_online(self, index_name = '', timeout=600):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         init_time = time.time()
         check = False
         next_time = init_time

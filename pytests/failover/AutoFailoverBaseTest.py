@@ -514,10 +514,10 @@ class AutoFailoverBaseTest(BaseTestCase):
         """
         BucketOperationHelper.delete_all_buckets_or_assert(self.servers, self)
         for node in self.servers:
-            master = node
+            main = node
             try:
                 ClusterOperationHelper.cleanup_cluster(self.servers,
-                                                       master=master)
+                                                       main=main)
             except:
                 continue
 
@@ -551,7 +551,7 @@ class AutoFailoverBaseTest(BaseTestCase):
             "{0} nodes failed over as expected in {1} seconds".format(actual_failover_count, time_end - time_start))
 
     def get_failover_count(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         cluster_status = rest.cluster_status()
         failover_count = 0
         # check for inactiveFailed
@@ -565,8 +565,8 @@ class DiskAutoFailoverBasetest(AutoFailoverBaseTest):
         super(DiskAutoFailoverBasetest, self).bareSetUp()
         self.log.info("=============Starting Diskautofailover base setup=============")
         self.original_data_path = self.rest.get_data_path()
-        ClusterOperationHelper.cleanup_cluster(self.servers, True, self.master)
-        self.targetMaster = True
+        ClusterOperationHelper.cleanup_cluster(self.servers, True, self.main)
+        self.targetMain = True
         self.reset_cluster()
         self.disk_location = self.input.param("data_location", "/data")
         self.disk_location_size = self.input.param("data_location_size", 5120)
@@ -576,21 +576,21 @@ class DiskAutoFailoverBasetest(AutoFailoverBaseTest):
         self.log.info("Cleanup the cluster and set the data location to the one specified by the test.")
         for server in self.servers:
             self._create_data_locations(server)
-            if server == self.master:
-                master_services = self.get_services(self.servers[:1],
+            if server == self.main:
+                main_services = self.get_services(self.servers[:1],
                                                     self.services_init,
                                                     start_node=0)
             else:
-                master_services = None
-            if master_services:
-                master_services = master_services[0].split(",")
+                main_services = None
+            if main_services:
+                main_services = main_services[0].split(",")
             self._initialize_node_with_new_data_location(server, self.data_location,
-                                                         master_services)
+                                                         main_services)
         self.services = self.get_services(self.servers[:self.nodes_init], None)
         self.cluster.rebalance(self.servers[:1],
                                self.servers[1:self.nodes_init],
                                [], services=self.services)
-        self.add_built_in_server_user(node=self.master)
+        self.add_built_in_server_user(node=self.main)
         if self.read_loadgen:
             self.bucket_size = 100
         # super(DiskAutoFailoverBasetest,self)._bucket_creation()
@@ -603,7 +603,7 @@ class DiskAutoFailoverBasetest(AutoFailoverBaseTest):
 
     def tearDown(self):
         self.log.info("=============Starting Diskautofailover teardown ==============")
-        self.targetMaster = True
+        self.targetMain = True
         if hasattr(self, "original_data_path"):
             for task in self.loadgen_tasks:
                 try:

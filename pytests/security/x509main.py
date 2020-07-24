@@ -59,7 +59,7 @@ class x509main:
         if host is not None:
             self.host = host
             self.install_path = self._get_install_path(self.host)
-        self.slave_host = x509main.SLAVE_HOST
+        self.subordinate_host = x509main.SLAVE_HOST
 
     def getLocalIPAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -73,7 +73,7 @@ class x509main:
         '''
 
     def _generate_cert(self, servers, root_cn='Root\ Authority', type='go', encryption="", key_length=1024, client_ip=None, alt_names='default', dns=None, uri=None):
-        shell = RemoteMachineShellConnection(self.slave_host)
+        shell = RemoteMachineShellConnection(self.subordinate_host)
         shell.execute_command("rm -rf " + x509main.CACERTFILEPATH)
         shell.execute_command("mkdir " + x509main.CACERTFILEPATH)
         
@@ -408,12 +408,12 @@ class x509main:
         status, content, header = rest._http_request(api, 'GET')
         return status, content, header
     
-    # Setup master node
+    # Setup main node
     # 1. Upload Cluster cert i.e
     # 2. Setup other nodes for certificates
     # 3. Create the cert.json file which contains state, path, prefixes and delimeters
     # 4. Upload the cert.json file
-    def setup_master(self, state=None, paths=None, prefixs=None, delimeters=None, mode='rest', user='Administrator', password='password'):
+    def setup_main(self, state=None, paths=None, prefixs=None, delimeters=None, mode='rest', user='Administrator', password='password'):
         copy_host = copy.deepcopy(self.host)
         x509main(copy_host)._upload_cluster_ca_certificate(user, password)
         x509main(copy_host)._setup_node_certificates()

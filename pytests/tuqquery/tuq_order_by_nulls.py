@@ -277,14 +277,14 @@ class OrderByNullsTests(QueryTests):
 #           Load/Cleanup of test data
 ####################################################################################################################
     def _load_test_data(self):
-        temp_bucket_params = self._create_bucket_params(server=self.master, size=self.bucket_size,
+        temp_bucket_params = self._create_bucket_params(server=self.main, size=self.bucket_size,
                                                         replicas=self.num_replicas, bucket_type=self.bucket_type,
                                                         enable_replica_index=self.enable_replica_index,
                                                         eviction_policy=self.eviction_policy, lww=self.lww)
         self.cluster.create_standard_bucket("temp_bucket", 11222, temp_bucket_params)
 
         for bucket in self.buckets:
-            self.cluster.bucket_flush(self.master, bucket=bucket, timeout=self.wait_timeout * 5)
+            self.cluster.bucket_flush(self.main, bucket=bucket, timeout=self.wait_timeout * 5)
 
         for i in range(len(self.numbers)):
             int_val = self.numbers[i]
@@ -335,4 +335,4 @@ class OrderByNullsTests(QueryTests):
         self.run_cbq_query('CREATE INDEX ix4 ON temp_bucket(bool_field);')
 
     def _unload_test_data(self):
-        self.cluster.bucket_delete(self.master, "temp_bucket")
+        self.cluster.bucket_delete(self.main, "temp_bucket")

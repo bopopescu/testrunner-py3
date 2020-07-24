@@ -14,7 +14,7 @@ from sdk_client import SDKClient
 class SubdocSimpleDataset(SubdocBaseTest):
     def setUp(self):
         super(SubdocSimpleDataset, self).setUp()
-        self.client = self.direct_client(self.master, self.buckets[0])
+        self.client = self.direct_client(self.main, self.buckets[0])
 
     def tearDown(self):
         super(SubdocSimpleDataset, self).tearDown()
@@ -91,7 +91,7 @@ class SubdocSimpleDataset(SubdocBaseTest):
         }
         jsonDump = json.dumps(array)
         self.client.set(self.key, 60, 0, jsonDump)
-        client1 = VBucketAwareMemcached(RestConnection(self.master), 'default')
+        client1 = VBucketAwareMemcached(RestConnection(self.main), 'default')
         get_meta_resp_before = client1.generic_request(client1.memcached(self.key).getMeta, self.key)
         self.log.info("Sleeping for 5 sec")
         time.sleep(5)
@@ -423,8 +423,8 @@ class SubdocSimpleDataset(SubdocBaseTest):
     def test_xattr_compression(self):
         # MB-32669
         # subdoc.subdoc_simple_dataset.SubdocSimpleDataset.test_xattr_compression,compression=active
-        mc = MemcachedClient(self.master.ip, 11210)
-        mc.sasl_auth_plain(self.master.rest_username, self.master.rest_password)
+        mc = MemcachedClient(self.main.ip, 11210)
+        mc.sasl_auth_plain(self.main.rest_username, self.main.rest_password)
         mc.bucket_select('default')
 
         self.key="test_xattr_compression"
@@ -442,7 +442,7 @@ class SubdocSimpleDataset(SubdocBaseTest):
         self.assertEqual(stats['ep_compression_mode'], 'active')
 
         scheme = "http"
-        host="{0}:{1}".format(self.master.ip, self.master.port)
+        host="{0}:{1}".format(self.main.ip, self.main.port)
         self.sdk_client=SDKClient(scheme=scheme, hosts = [host], bucket = "default")
 
         self.sdk_client.set(self.key, value=jsonDump, ttl=60)

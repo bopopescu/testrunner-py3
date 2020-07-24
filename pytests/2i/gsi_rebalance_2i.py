@@ -378,7 +378,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         self.sleep(30)
         map_before_rebalance, stats_map_before_rebalance = self._return_maps()
         # failover the indexer node
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=[index_server], graceful=False)
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=[index_server], graceful=False)
         failover_task.result()
         self.sleep(30)
         # do a full recovery and rebalance
@@ -409,7 +409,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         self.sleep(30)
         map_before_rebalance, stats_map_before_rebalance = self._return_maps()
         # failover the indexer node
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=[index_server], graceful=False)
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=[index_server], graceful=False)
         failover_task.result()
         self.sleep(30)
         # do a delta recovery and rebalance
@@ -442,7 +442,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
                                                  services=services_in)
         rebalance.result()
         # failover the indexer node which had all the indexes
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=[index_server], graceful=False)
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=[index_server], graceful=False)
         failover_task.result()
         self.sleep(30)
         # rebalance out the indexer node
@@ -463,7 +463,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         self.sleep(30)
         map_before_rebalance, stats_map_before_rebalance = self._return_maps()
         # failover the indexer node
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=[index_server], graceful=True)
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=[index_server], graceful=True)
         failover_task.result()
         self.sleep(240)
         # do a full recovery and rebalance
@@ -494,7 +494,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         self.sleep(30)
         map_before_rebalance, stats_map_before_rebalance = self._return_maps()
         # failover the indexer node
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=[index_server], graceful=True)
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=[index_server], graceful=True)
         failover_task.result()
         self.sleep(120)
         # do a delta recovery and rebalance
@@ -563,7 +563,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         # rebalance out a indexer node
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], [index_server])
         # stop the rebalance
-        stopped = RestConnection(self.master).stop_rebalance(wait_timeout=self.wait_timeout // 3)
+        stopped = RestConnection(self.main).stop_rebalance(wait_timeout=self.wait_timeout // 3)
         self.assertTrue(stopped, msg="unable to stop rebalance")
         rebalance.result()
         # start rebalance again
@@ -873,7 +873,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         failover_nodes = [kv_server[1], index_server]
         self._push_indexer_off_the_cliff()
         # Try kv and index failover when indexer is in paused state
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=failover_nodes, graceful=False)
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=failover_nodes, graceful=False)
         failover_task.result()
         for failover_node in failover_nodes:
             self.rest.add_back_node("ns_1@" + failover_node.ip)
@@ -1135,7 +1135,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         t1.start()
         self.sleep(5)
         # failover the kv node
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=[kv_node], graceful=False)
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=[kv_node], graceful=False)
         failover_task.result()
         t1.join()
         self.sleep(30)
@@ -1163,7 +1163,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         t1.start()
         self.sleep(5)
         # failover the indexer node
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=[index_node], graceful=False)
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=[index_node], graceful=False)
         failover_task.result()
         t1.join()
         self.sleep(30)
@@ -1335,7 +1335,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
                            alter_index=self.alter_index)
         # failover the kv node when cbindex move is in progress
         kv_server = self.get_nodes_from_services_map(service_type="kv", get_all_nodes=False)
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=[kv_server], graceful=False)
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=[kv_server], graceful=False)
         failover_task.result()
         self.sleep(30)
         if not self.alter_index:
@@ -1372,7 +1372,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         self._cbindex_move(index_server, self.servers[self.nodes_init], indexes,
                            alter_index=self.alter_index)
         # failover the indexer node when cbindex move is in progress which is not involved in cbindex move
-        failover_task = self.cluster.async_failover([self.master], failover_nodes=[self.servers[self.nodes_init + 1]],
+        failover_task = self.cluster.async_failover([self.main], failover_nodes=[self.servers[self.nodes_init + 1]],
                                                     graceful=False)
         failover_task.result()
         self.sleep(30)
@@ -1832,7 +1832,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         self.run_operation(phase="before")
         self.sleep(30)
         map_before_rebalance, stats_map_before_rebalance = self._return_maps()
-        RestConnection(self.master).update_autofailover_settings(True, 30)
+        RestConnection(self.main).update_autofailover_settings(True, 30)
         kv_node = self.get_nodes_from_services_map(service_type="kv", get_all_nodes=True)
         index_node = self.get_nodes_from_services_map(service_type="index", get_all_nodes=False)
         remote = RemoteMachineShellConnection(kv_node[1])
@@ -2876,7 +2876,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
     def _set_bucket_compaction(self):
         compact_tasks = []
         for bucket in self.buckets:
-            compact_tasks.append(self.cluster.async_compact_bucket(self.master, bucket))
+            compact_tasks.append(self.cluster.async_compact_bucket(self.main, bucket))
         for task in compact_tasks:
             task.result()
 
@@ -3028,7 +3028,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
             self._create_replica_index(create_index_query)
         load_thread = threading.Thread(target=self.load_buckets_with_high_ops,
                              name="gen_high_ops_load",
-                             args=(self.master, self.buckets[0], self.num_docs,
+                             args=(self.main, self.buckets[0], self.num_docs,
                                    self.batch_size,
                                    self.threads, 0,
                                    self.instances, 0))
@@ -3043,7 +3043,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         self.assertTrue(reached, "rebalance failed, stuck or did not complete")
         rebalance.result()
         load_thread.join()
-        errors = self.check_dataloss_for_high_ops_loader(self.master, self.buckets[0],
+        errors = self.check_dataloss_for_high_ops_loader(self.main, self.buckets[0],
                                                          self.num_docs,
                                                          self.batch_size,
                                                          self.threads,
@@ -3059,7 +3059,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
                       format(self.num_docs + self.docs_per_day, self.rest.get_active_key_count(self.buckets[0])))
         load_thread1 = threading.Thread(target=self.load_buckets_with_high_ops,
                              name="gen_high_ops_load",
-                             args=(self.master, self.buckets[0], self.num_docs * 2,
+                             args=(self.main, self.buckets[0], self.num_docs * 2,
                                    self.batch_size,
                                    self.threads, 0,
                                    self.instances, 0))
@@ -3073,7 +3073,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         rebalance.result()
         self.sleep(30)
         load_thread1.join()
-        errors = self.check_dataloss_for_high_ops_loader(self.master, self.buckets[0],
+        errors = self.check_dataloss_for_high_ops_loader(self.main, self.buckets[0],
                                                          self.num_docs * 2,
                                                          self.batch_size,
                                                          self.threads,
@@ -3150,7 +3150,7 @@ class SecondaryIndexingRebalanceTests(BaseSecondaryIndexingTests, QueryHelperTes
         output = result.stdout.read()
         error = result.stderr.read()
         errors = []
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         VBucketAware = VBucketAwareMemcached(rest, bucket.name)
         _, _, _ = VBucketAware.request_map(rest, bucket.name)
         if error:

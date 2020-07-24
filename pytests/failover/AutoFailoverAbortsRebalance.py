@@ -21,7 +21,7 @@ class AutoFailoverAbortsRebalance(AutoFailoverBaseTest, BaseTestCase):
 
     def setUp(self):
         super(AutoFailoverAbortsRebalance, self).setUp()
-        self.master = self.servers[0]
+        self.main = self.servers[0]
         self._get_params()
         self.rest = RestConnection(self.orchestrator)
         self.task_manager = TaskManager("Autofailover_thread")
@@ -31,11 +31,11 @@ class AutoFailoverAbortsRebalance(AutoFailoverBaseTest, BaseTestCase):
         node_ram_ratio = BucketOperationHelper.base_bucket_ratio(self.servers)
         self.num_buckets = self.num_buckets - 1  # this is done as default is created by base class
         if self.num_buckets:
-            BucketOperationHelper.create_multiple_buckets(self.master, self.num_replicas, node_ram_ratio * (2.0 / 3.0),
+            BucketOperationHelper.create_multiple_buckets(self.main, self.num_replicas, node_ram_ratio * (2.0 / 3.0),
                                                           howmany=self.num_buckets)
         self.buckets = self.rest.get_buckets()
         for bucket in self.buckets:
-            ready = BucketOperationHelper.wait_for_memcached(self.master, bucket.name)
+            ready = BucketOperationHelper.wait_for_memcached(self.main, bucket.name)
             self.assertTrue(ready, "wait_for_memcached failed")
         self.initial_load_gen = BlobGenerator('auto-failover',
                                               'auto-failover-',
@@ -96,7 +96,7 @@ class AutoFailoverAbortsRebalance(AutoFailoverBaseTest, BaseTestCase):
         self.enable_autofailover_and_validate()
         self.sleep(5)
         # do a graceful failover
-        self.cluster.failover([self.master], failover_nodes=[self.servers[self.server_index_to_fail]], graceful=True)
+        self.cluster.failover([self.main], failover_nodes=[self.servers[self.server_index_to_fail]], graceful=True)
         # wait for failover to complete
         self.wait_for_failover_or_assert(1, 500)
         # do a delta recovery
@@ -160,7 +160,7 @@ class AutoFailoverAbortsRebalance(AutoFailoverBaseTest, BaseTestCase):
         # enable auto failover and canAbortRebalance
         self.enable_autofailover_and_validate()
         # failover a node
-        self.cluster.failover([self.master], failover_nodes=[self.servers[self.server_index_to_fail]], graceful=False)
+        self.cluster.failover([self.main], failover_nodes=[self.servers[self.server_index_to_fail]], graceful=False)
         # wait for failover to complete
         self.wait_for_failover_or_assert(1, 500)
         # Start rebalance out
@@ -192,7 +192,7 @@ class AutoFailoverAbortsRebalance(AutoFailoverBaseTest, BaseTestCase):
         # enable auto failover and canAbortRebalance
         self.enable_autofailover_and_validate()
         # failover a node
-        self.cluster.failover([self.master], failover_nodes=[self.servers[self.server_index_to_failover]],
+        self.cluster.failover([self.main], failover_nodes=[self.servers[self.server_index_to_failover]],
                               graceful=False)
         self.sleep(5)
         # Start rebalance out
@@ -228,7 +228,7 @@ class AutoFailoverAbortsRebalance(AutoFailoverBaseTest, BaseTestCase):
         self.enable_autofailover_and_validate()
         self.sleep(5)
         # do a graceful failover
-        self.cluster.failover([self.master], failover_nodes=[self.servers[self.server_index_to_failover]],
+        self.cluster.failover([self.main], failover_nodes=[self.servers[self.server_index_to_failover]],
                               graceful=True)
         # wait for failover to complete
         self.wait_for_failover_or_assert(1, 500)

@@ -141,7 +141,7 @@ class RebalanceBaseTest(BaseTestCase):
             body["enabled"] = "false"
         body["afterTimePeriod"] = afterTimePeriod
         body["maxAttempts"] = maxAttempts
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         rest.set_retry_rebalance_settings(body)
         result = rest.get_retry_rebalance_settings()
         self.log.info("Retry Rebalance settings changed to : {0}"
@@ -150,7 +150,7 @@ class RebalanceBaseTest(BaseTestCase):
     def reset_retry_rebalance_settings(self):
         body = dict()
         body["enabled"] = "false"
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         rest.set_retry_rebalance_settings(body)
         self.log.info("Retry Rebalance settings reset ....")
 

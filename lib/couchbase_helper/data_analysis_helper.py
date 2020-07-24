@@ -778,7 +778,7 @@ class DataCollector(object):
         return headerInfo, bucketMap
 
     def get_kv_dump_from_backup_file(self, server, cli_command, cmd_ext,
-                                     backup_dir, master_key, buckets):
+                                     backup_dir, main_key, buckets):
         """
             Extract key value from database file shard_0.sqlite.0
             Return: key, kv store name, status and value
@@ -790,15 +790,15 @@ class DataCollector(object):
         for bucket in buckets:
             backup_data[bucket.name] = {}
             print("---- Collecting data in backup repo")
-            if master_key == "random_keys":
-                master_key = ".\{12\}$"
+            if main_key == "random_keys":
+                main_key = ".\{12\}$"
             dump_output = []
             for i in range(0, 1024):
                 cmd2 = "{0}cbsqlitedump{1} "\
                        " -f {2}/backup/{3}*/{4}*/data/shard_{5}.sqlite.0 | grep -A 8 'Key: {6}' "\
                                                   .format(cli_command, cmd_ext,\
                                                    backup_dir, now.year, bucket.name,\
-                                                   i, master_key)
+                                                   i, main_key)
                 output, error = conn.execute_command(cmd2, debug=False)
                 if output:
                     """ remove empty element """

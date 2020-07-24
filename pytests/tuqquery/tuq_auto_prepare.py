@@ -45,14 +45,14 @@ class QueryAutoPrepareTests(QueryTests):
             prepared_query = 'PREPARE %s' % (query)
 
         self.shell.execute_command("%s -u Administrator:password %s:%s/query/service -d statement='%s'"
-                                    % (self.curl_path, self.master.ip, self.n1ql_port, prepared_query))
+                                    % (self.curl_path, self.main.ip, self.n1ql_port, prepared_query))
 
         # Make sure that the prepared statement got prepared on all active nodes (2)
         self.with_retry(lambda: self.check_prepared_finished(), eval=2, delay=1, tries=30)
 
         # execute the non prepared version of the query to compare results
         curl_output = self.shell.execute_command("%s -u Administrator:password %s:%s/query/service -d statement='%s&%s'"
-                                                 % (self.curl_path, self.master.ip, self.n1ql_port, query, args))
+                                                 % (self.curl_path, self.main.ip, self.n1ql_port, query, args))
         expected_results = self.convert_list_to_json(curl_output[0])
 
         for i in range(self.nodes_init):
@@ -169,10 +169,10 @@ class QueryAutoPrepareTests(QueryTests):
     def test_auto_prepare(self):
         # Set the queries run to be automatically prepared
         self.shell.execute_command("%s -u Administrator:password %s:%s/admin/settings -d '{\"auto-prepare\":true}'"
-                                   % (self.curl_path, self.master.ip, self.n1ql_port))
+                                   % (self.curl_path, self.main.ip, self.n1ql_port))
 
-        self.run_cbq_query('select * from default', server=self.master)
-        self.run_cbq_query('select * from default limit 10', server=self.master)
+        self.run_cbq_query('select * from default', server=self.main)
+        self.run_cbq_query('select * from default limit 10', server=self.main)
 
         # Ensure the two above queries were automatically prepared
         query_1 = self.run_cbq_query('select * from system:prepareds where statement = "select * from default"')
@@ -181,8 +181,8 @@ class QueryAutoPrepareTests(QueryTests):
         self.assertEqual(query_1['metrics']['resultCount'], 1, "Count mismatch dumping results from system:prepareds: " % query_1)
         self.assertEqual(query_2['metrics']['resultCount'], 1, "Count mismatch dumping results from system:prepareds: " % query_2)
 
-        self.run_cbq_query('select * from default', server=self.master)
-        self.run_cbq_query('select * from default limit 10', server=self.master)
+        self.run_cbq_query('select * from default', server=self.main)
+        self.run_cbq_query('select * from default limit 10', server=self.main)
 
         # Make sure the uses goes up since these queries are already prepared
         query_1 = self.run_cbq_query('select * from system:prepareds where statement = "select * from default"')
@@ -372,8 +372,8 @@ class QueryAutoPrepareTests(QueryTests):
     def test_add_node_no_rebalance(self):
         services_in = ["index", "n1ql", "kv"]
         # rebalance in a node
-        rest = RestConnection(self.master)
-        rest.add_node(self.master.rest_username, self.master.rest_password, self.servers[self.nodes_init].ip,
+        rest = RestConnection(self.main)
+        rest.add_node(self.main.rest_username, self.main.rest_password, self.servers[self.nodes_init].ip,
                       self.servers[self.nodes_init].port, services=services_in)
         self.sleep(30)
         self.run_cbq_query(query="PREPARE p1 from select * from default limit 5", server=self.servers[0])

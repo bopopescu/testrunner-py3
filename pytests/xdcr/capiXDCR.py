@@ -21,9 +21,9 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
         super(Capi, self).setUp()
         self.cluster = Cluster()
         self.src_cluster = self.get_cb_cluster_by_name('C1')
-        self.src_master = self.src_cluster.get_master_node()
+        self.src_main = self.src_cluster.get_main_node()
         self.dest_cluster = self.get_cb_cluster_by_name('C2')
-        self.dest_master = self.dest_cluster.get_master_node()
+        self.dest_main = self.dest_cluster.get_main_node()
         self.use_hostnames = self._input.param("use_hostnames", False)
         self.src_init = self._input.param('src_init', 2)
         self.dest_init = self._input.param('dest_init', 1)
@@ -33,9 +33,9 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
         self.init_nodes = self._input.param('init_nodes', True)
         self.initial_build_type = self._input.param('initial_build_type', None)
         self.upgrade_build_type = self._input.param('upgrade_build_type', self.initial_build_type)
-        self.master = self.src_master
-        self.rest = RestConnection(self.src_master)
-        self.esrest_conn = EsRestConnection(self.dest_master)
+        self.main = self.src_main
+        self.rest = RestConnection(self.src_main)
+        self.esrest_conn = EsRestConnection(self.dest_main)
 
     def tearDown(self):
         super(Capi, self).tearDown()
@@ -168,7 +168,7 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
 
         capi_data_chan_size_multi = self._input.param("capi_data_chan_size_multi", None)
         if capi_data_chan_size_multi:
-            shell = RemoteMachineShellConnection(self.src_master)
+            shell = RemoteMachineShellConnection(self.src_main)
             command = "curl -X POST -u Administrator:password http://127.0.0.1:9998/xdcr/internalSettings " + \
                       "-d CapiDataChanSizeMultiplier=" + str(capi_data_chan_size_multi)
             output, error = shell.execute_command(command)
@@ -176,7 +176,7 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
 
         self.setup_xdcr()
 
-        rest_conn = RestConnection(self.src_master)
+        rest_conn = RestConnection(self.src_main)
 
         rest_conn.set_xdcr_param('default', 'default', 'workerBatchSize', batch_count)
         rest_conn.set_xdcr_param('default', 'default', 'docBatchSizeKb', batch_size)
@@ -191,9 +191,9 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
         self.src_cluster.resume_all_replications()
 
         if enable_firewall:
-            NodeHelper.enable_firewall(self.dest_cluster.get_master_node())
+            NodeHelper.enable_firewall(self.dest_cluster.get_main_node())
             self.sleep(120)
-            NodeHelper.disable_firewall(self.dest_cluster.get_master_node())
+            NodeHelper.disable_firewall(self.dest_cluster.get_main_node())
 
         self._verify_es_results()
 
@@ -259,7 +259,7 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
         self.src_cluster.failover(graceful=graceful)
 
         self.sleep(30)
-        rest_conn = RestConnection(self.src_master)
+        rest_conn = RestConnection(self.src_main)
         if self.recoveryType:
             server_nodes = rest_conn.node_statuses()
             for node in server_nodes:
@@ -275,7 +275,7 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
     def test_capi_with_malformed_http_resp(self):
         self.setup_xdcr()
 
-        rest_conn = RestConnection(self.src_master)
+        rest_conn = RestConnection(self.src_main)
 
         rest_conn.set_xdcr_param('default', 'default', 'workerBatchSize', 2000)
         rest_conn.set_xdcr_param('default', 'default', 'docBatchSizeKb', 8096)
@@ -290,7 +290,7 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
 
         self._wait_for_replication_to_catchup()
 
-        goxdcr_log = NodeHelper.get_goxdcr_log_dir(self.src_master) \
+        goxdcr_log = NodeHelper.get_goxdcr_log_dir(self.src_main) \
                      + '/goxdcr.log*'
         for node in self.src_cluster.get_nodes():
             count = NodeHelper.check_goxdcr_log(
@@ -348,7 +348,7 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
 
         repl_id = self._start_es_replication()
 
-        rest_conn = RestConnection(self.src_master)
+        rest_conn = RestConnection(self.src_main)
         rest_conn.pause_resume_repl_by_id(repl_id, REPL_PARAM.PAUSE_REQUESTED, 'true')
 
         gen = DocumentGenerator('es', '{{"key":"value","mutated":0}}', range(100), start=0, end=self._num_items)
@@ -371,19 +371,19 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
         status, content = ClusterOperationHelper.find_orchestrator(upgrade_nodes[0])
         self.assertTrue(status, msg="Unable to find orchestrator: {0}:{1}". \
                         format(status, content))
-        self.log.info("after rebalance in the master is {0}".format(content))
-        find_master = False
+        self.log.info("after rebalance in the main is {0}".format(content))
+        find_main = False
         for new_server in extra_nodes:
             if content.find(new_server.ip) >= 0:
-                find_master = True
-                self.log.info("{0} Node {1} becomes the master".format(added_versions[0], new_server.ip))
+                find_main = True
+                self.log.info("{0} Node {1} becomes the main".format(added_versions[0], new_server.ip))
                 break
-        if not find_master:
-            raise Exception("After rebalance in {0} Nodes, one of them doesn't become the master".
+        if not find_main:
+            raise Exception("After rebalance in {0} Nodes, one of them doesn't become the main".
                             format(added_versions[0]))
         self.log.info("Rebalancing out all old version nodes")
         self.cluster.rebalance(upgrade_nodes + extra_nodes, [], upgrade_nodes)
-        self.src_master = self._input.servers[self.src_init + self.dest_init]
+        self.src_main = self._input.servers[self.src_init + self.dest_init]
 
         self._install(self.src_cluster.get_nodes(), version=upgrade_version)
         upgrade_nodes = self._input.servers[self.src_init + self.dest_init:]
@@ -398,14 +398,14 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
         status, content = ClusterOperationHelper.find_orchestrator(upgrade_nodes[0])
         self.assertTrue(status, msg="Unable to find orchestrator: {0}:{1}". \
                         format(status, content))
-        self.log.info("after rebalance in the master is {0}".format(content))
+        self.log.info("after rebalance in the main is {0}".format(content))
         self.log.info("Rebalancing out all old version nodes")
         self.cluster.rebalance(upgrade_nodes + extra_nodes, [], upgrade_nodes)
-        self.src_master = self._input.servers[0]
+        self.src_main = self._input.servers[0]
 
         self.log.info("######### Upgrade of CB cluster completed ##########")
 
-        rest_conn = RestConnection(self.src_master)
+        rest_conn = RestConnection(self.src_main)
         rest_conn.pause_resume_repl_by_id(repl_id, REPL_PARAM.PAUSE_REQUESTED, 'true')
 
         gen = DocumentGenerator('es', '{{"key":"value"}}', range(100), start=0, end=self._num_items)
@@ -431,7 +431,7 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
 
         self.async_perform_update_delete()
 
-        conn = RemoteMachineShellConnection(self.src_master)
+        conn = RemoteMachineShellConnection(self.src_main)
         conn.stop_couchbase()
         conn.start_couchbase()
 
@@ -453,7 +453,7 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
 
         self.async_perform_update_delete()
 
-        conn = RemoteMachineShellConnection(self.src_master)
+        conn = RemoteMachineShellConnection(self.src_main)
         conn.kill_erlang()
         conn.start_couchbase()
 
@@ -475,7 +475,7 @@ class Capi(XDCRNewBaseTest, NewUpgradeBaseTest):
 
         self.async_perform_update_delete()
 
-        conn = RemoteMachineShellConnection(self.src_master)
+        conn = RemoteMachineShellConnection(self.src_main)
         conn.pause_memcached()
         conn.unpause_memcached()
 

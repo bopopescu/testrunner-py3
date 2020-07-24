@@ -102,7 +102,7 @@ WIN_CB_VERSION_3 = ["3.0.0", "3.0.1", "3.0.2", "3.0.3", "3.1.0", "3.1.1","3.1.2"
 SHERLOCK_VERSION = ["4.0.0", "4.0.1", "4.0", "4.1.0", "4.1", "4.1.1", "4.1.2"]
 WATSON_VERSION = ["4.5.0", "4.5.1", "4.6.0", "4.6.1", "4.6.2", "4.6.3", "4.6.4", "4.6.5"]
 
-CB_VERSION_NAME = {"0.0":"master", "4.0":"sherlock", "4.1":"sherlock",
+CB_VERSION_NAME = {"0.0":"main", "4.0":"sherlock", "4.1":"sherlock",
                    "4.5":"watson", "4.6":"watson",
                    "4.7":"spock", "5.0":"spock", "5.1":"spock",
                    "5.5":"vulcan",
@@ -245,7 +245,7 @@ CLI_COMMANDS = ["cbbackup", "cbbrowse_logs", "cbcollect_info", "cbcompact", "cbd
                 "gencfu", "gencnval", "genctd", "generate_cert", "genrb", "icu-config", "install", "makeconv", "mctimings", \
                 "memcached", "moxi", "reports", "sigar_port", "sqlite3", "to_erl", "tools", "typer", "uconv", "vbmap"]
 LOG_FILE_NAMES = ['cbcollect_info.log', 'couchbase.log', 'couchstore_local.log', 'ddocs.log', 'diag.log',
-                  'ini.log', 'kv_trace.json', 'master_events.log', 'memcached.log',
+                  'ini.log', 'kv_trace.json', 'main_events.log', 'memcached.log',
                   'ns_server.analytics_dcpdebug.log', 'ns_server.analytics_debug.log', 'ns_server.analytics_error.log', \
                   'ns_server.analytics_info.log', 'ns_server.analytics_shutdown.log', 'ns_server.analytics_trace.json', \
                   'ns_server.analytics_warn.log', 'ns_server.babysitter.log', 'ns_server.couchdb.log', 'ns_server.debug.log',

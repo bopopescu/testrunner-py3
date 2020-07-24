@@ -1641,7 +1641,7 @@ class CouchbaseCluster:
         self.__log = log
         self.__mem_quota = 0
         self.__use_hostname = use_hostname
-        self.__master_node = nodes[0]
+        self.__main_node = nodes[0]
         self.__design_docs = []
         self.__buckets = []
         self.__hostnames = {}
@@ -1661,13 +1661,13 @@ class CouchbaseCluster:
         self.sdk_compression = sdk_compression
 
     def __str__(self):
-        return "Couchbase Cluster: %s, Master Ip: %s" % (
-            self.__name, self.__master_node.ip)
+        return "Couchbase Cluster: %s, Main Ip: %s" % (
+            self.__name, self.__main_node.ip)
 
     def __set_fts_ram_quota(self):
         fts_quota = TestInputSingleton.input.param("fts_quota", None)
         if fts_quota:
-            RestConnection(self.__master_node).set_fts_ram_quota(fts_quota)
+            RestConnection(self.__main_node).set_fts_ram_quota(fts_quota)
 
     def get_node(self, ip, port):
         for node in self.__nodes:
@@ -1688,7 +1688,7 @@ class CouchbaseCluster:
         self.__fts_nodes = []
         self.__n1ql_nodes = []
         self.__non_fts_nodes = []
-        service_map = RestConnection(self.__master_node).get_nodes_services()
+        service_map = RestConnection(self.__main_node).get_nodes_services()
         for node_ip, services in service_map.items():
             if self.is_cluster_run():
                 # if cluster-run and ip not 127.0.0.1
@@ -1717,7 +1717,7 @@ class CouchbaseCluster:
         return self.__non_fts_nodes
 
     def __stop_rebalance(self):
-        rest = RestConnection(self.__master_node)
+        rest = RestConnection(self.__main_node)
         if rest._rebalance_progress_status() == 'running':
             self.__log.warning(
                 "rebalancing is still running, test should be verified")
@@ -1745,8 +1745,8 @@ class CouchbaseCluster:
     def get_host_names(self):
         return self.__hostnames
 
-    def get_master_node(self):
-        return self.__master_node
+    def get_main_node(self):
+        return self.__main_node
 
     def get_indexes(self):
         return self.__indexes
@@ -1900,7 +1900,7 @@ class CouchbaseCluster:
                 force_eject = TestInputSingleton.input.param(
                     "forceEject",
                     False)
-                if force_eject and node != self.__master_node:
+                if force_eject and node != self.__main_node:
                     try:
                         rest = RestConnection(node)
                         rest.force_eject_node()
@@ -1917,7 +1917,7 @@ class CouchbaseCluster:
         try:
             self.__log.info("Removing user 'cbadminbucket'...")
             RbacBase().remove_user_role(['cbadminbucket'], RestConnection(
-                self.__master_node))
+                self.__main_node))
         except Exception as e:
             self.__log.info(e)
 
@@ -1973,7 +1973,7 @@ class CouchbaseCluster:
         for i in range(num_buckets):
             name = "sasl_bucket_" + str(i + 1)
             sasl_params = self._create_bucket_params(
-                server=self.__master_node,
+                server=self.__main_node,
                 password='password',
                 size=bucket_size,
                 replicas=num_replicas,
@@ -2021,7 +2021,7 @@ class CouchbaseCluster:
             if not (num_buckets == 1 and name):
                 name = "standard_bucket_" + str(i + 1)
             standard_params = self._create_bucket_params(
-                server=self.__master_node,
+                server=self.__main_node,
                 size=bucket_size,
                 replicas=num_replicas,
                 eviction_policy=eviction_policy,
@@ -2062,7 +2062,7 @@ class CouchbaseCluster:
         @param bucket_priority: high/low etc.
         """
         bucket_params=self._create_bucket_params(
-            server=self.__master_node,
+            server=self.__main_node,
             size=bucket_size,
             replicas=num_replicas,
             eviction_policy=eviction_policy,
@@ -2182,7 +2182,7 @@ class CouchbaseCluster:
 
     def get_buckets(self):
         if not self.__buckets:
-            self.__buckets = RestConnection(self.__master_node).get_buckets()
+            self.__buckets = RestConnection(self.__main_node).get_buckets()
         return self.__buckets
 
     def get_bucket_by_name(self, bucket_name):
@@ -2190,7 +2190,7 @@ class CouchbaseCluster:
         @param bucket_name: bucket name.
         @return: bucket object
         """
-        for bucket in RestConnection(self.__master_node).get_buckets():
+        for bucket in RestConnection(self.__main_node).get_buckets():
             if bucket.name == bucket_name:
                 return bucket
 
@@ -2199,7 +2199,7 @@ class CouchbaseCluster:
             bucket_name)
 
     def get_doc_count_in_bucket(self, bucket):
-        return RestConnection(self.__master_node).get_active_key_count(bucket)
+        return RestConnection(self.__main_node).get_active_key_count(bucket)
 
     def delete_bucket(self, bucket_name):
         """Delete bucket with given name
@@ -2207,7 +2207,7 @@ class CouchbaseCluster:
         """
         bucket_to_remove = self.get_bucket_by_name(bucket_name)
         self.__clusterop.bucket_delete(
-            self.__master_node,
+            self.__main_node,
             bucket_to_remove.name)
         for bucket_in in self.__buckets:
             if bucket_in.name == bucket_to_remove:
@@ -2216,7 +2216,7 @@ class CouchbaseCluster:
     def delete_all_buckets(self):
         for bucket_to_remove in self.__buckets:
             self.__clusterop.bucket_delete(
-                self.__master_node,
+                self.__main_node,
                 bucket_to_remove.name)
             self.__buckets.remove(bucket_to_remove)
 
@@ -2225,7 +2225,7 @@ class CouchbaseCluster:
         tasks = []
         for bucket in buckets:
             tasks.append(self.__clusterop.async_bucket_flush(
-                self.__master_node,
+                self.__main_node,
                 bucket))
         [task.result() for task in tasks]
 
@@ -2236,7 +2236,7 @@ class CouchbaseCluster:
         threads = input.param("threads", 8)
         items = input.param("items", 6000000)
         self.__clusterop.load_buckets_with_high_ops(
-            server=self.__master_node,
+            server=self.__main_node,
             bucket=bucket,
             items=items,
             batch=batch_size,
@@ -2247,7 +2247,7 @@ class CouchbaseCluster:
 
     def check_dataloss_with_high_ops_loader(self, bucket):
         self.__clusterop.check_dataloss_for_high_ops_loader(
-            self.__master_node,
+            self.__main_node,
             bucket,
             TestInputSingleton.input.param("items", 6000000),
             batch=20000,
@@ -2284,7 +2284,7 @@ class CouchbaseCluster:
 
         gen = copy.deepcopy(self._kv_gen[OPS.CREATE])
         task = self.__clusterop.async_load_gen_docs(
-            self.__master_node, bucket.name, gen, bucket.kvs[kv_store],
+            self.__main_node, bucket.name, gen, bucket.kvs[kv_store],
             OPS.CREATE, exp, flag, only_store_hash, batch_size, pause_secs,
             timeout_secs, compression=self.sdk_compression)
         return task
@@ -2336,7 +2336,7 @@ class CouchbaseCluster:
             gen = copy.deepcopy(self._kv_gen[OPS.CREATE])
             tasks.append(
                 self.__clusterop.async_load_gen_docs(
-                    self.__master_node, bucket.name, gen, bucket.kvs[kv_store],
+                    self.__main_node, bucket.name, gen, bucket.kvs[kv_store],
                     OPS.CREATE, exp, flag, only_store_hash, batch_size,
                     pause_secs, timeout_secs, compression=self.sdk_compression)
             )
@@ -2402,12 +2402,12 @@ class CouchbaseCluster:
 
         tasks = []
         if not self.__buckets:
-            self.__buckets = RestConnection(self.__master_node).get_buckets()
+            self.__buckets = RestConnection(self.__main_node).get_buckets()
         for bucket in self.__buckets:
             kv_gen = copy.deepcopy(self._kv_gen[ops])
             tasks.append(
                 self.__clusterop.async_load_gen_docs(
-                    self.__master_node, bucket.name, kv_gen,
+                    self.__main_node, bucket.name, kv_gen,
                     bucket.kvs[kv_store], ops, exp, flag,
                     only_store_hash, batch_size, pause_secs, timeout_secs, compression=self.sdk_compression)
             )
@@ -2433,7 +2433,7 @@ class CouchbaseCluster:
         task = []
         task.append(
             self.__clusterop.async_load_gen_docs(
-                self.__master_node, bucket.name, kv_gen,
+                self.__main_node, bucket.name, kv_gen,
                 bucket.kvs[kv_store], ops, exp, flag,
                 only_store_hash, batch_size, pause_secs, timeout_secs, compression=self.sdk_compression)
         )
@@ -2464,10 +2464,10 @@ class CouchbaseCluster:
         seed = "%s-" % self.__name
         end = 0
         current_active_resident = StatsCommon.get_stats(
-            [self.__master_node],
+            [self.__main_node],
             self.__buckets[0],
             '',
-            'vb_active_perc_mem_resident')[self.__master_node]
+            'vb_active_perc_mem_resident')[self.__main_node]
         start = items
         while int(current_active_resident) > active_resident_ratio:
             batch_size = 1000
@@ -2487,7 +2487,7 @@ class CouchbaseCluster:
             tasks = []
             for bucket in self.__buckets:
                 tasks.append(self.__clusterop.async_load_gen_docs(
-                    self.__master_node, bucket.name, copy.deepcopy(kv_gen), bucket.kvs[kv_store],
+                    self.__main_node, bucket.name, copy.deepcopy(kv_gen), bucket.kvs[kv_store],
                     OPS.CREATE, exp, flag, only_store_hash, batch_size,
                     pause_secs, timeout_secs, compression=self.sdk_compression))
 
@@ -2501,10 +2501,10 @@ class CouchbaseCluster:
 
             start = end
             current_active_resident = StatsCommon.get_stats(
-                [self.__master_node],
+                [self.__main_node],
                 bucket,
                 '',
-                'vb_active_perc_mem_resident')[self.__master_node]
+                'vb_active_perc_mem_resident')[self.__main_node]
             self.__log.info(
                 "Current resident ratio: %s, desired: %s bucket %s" % (
                     current_active_resident,
@@ -2568,7 +2568,7 @@ class CouchbaseCluster:
         self._kv_gen[OPS.UPDATE].update(fields_to_update=fields_to_update)
 
         task = self.__clusterop.async_load_gen_docs(
-            self.__master_node, bucket.name, self._kv_gen[OPS.UPDATE],
+            self.__main_node, bucket.name, self._kv_gen[OPS.UPDATE],
             bucket.kvs[kv_store], OPS.UPDATE, exp, flag, only_store_hash,
             batch_size, pause_secs, timeout_secs, compression=self.sdk_compression)
         return task
@@ -2634,7 +2634,7 @@ class CouchbaseCluster:
                             format(bucket.name, self.__name, op_type, gen.start, gen.end - 1))
             tasks.append(
                 self.__clusterop.async_load_gen_docs(
-                    self.__master_node,
+                    self.__main_node,
                     bucket.name,
                     gen,
                     bucket.kvs[kv_store],
@@ -2664,7 +2664,7 @@ class CouchbaseCluster:
         """
         for bucket in self.__buckets:
             ClusterOperationHelper.flushctl_set(
-                self.__master_node,
+                self.__main_node,
                 "exp_pager_stime",
                 val,
                 bucket)
@@ -2680,13 +2680,13 @@ class CouchbaseCluster:
                       "dbFragmentThreshold": None,
                       "viewFragmntThreshold": None}
         self.__clusterop.modify_fragmentation_config(
-            self.__master_node,
+            self.__main_node,
             new_config,
             bucket)
 
-    def __async_rebalance_out(self, master=False, num_nodes=1):
+    def __async_rebalance_out(self, main=False, num_nodes=1):
         """Rebalance-out nodes from Cluster
-        @param master: True if rebalance-out master node only.
+        @param main: True if rebalance-out main node only.
         @param num_nodes: number of nodes to rebalance-out from cluster.
         """
         raise_if(
@@ -2695,13 +2695,13 @@ class CouchbaseCluster:
                 "Cluster needs:{0} nodes for rebalance-out, current: {1}".
                     format((num_nodes + 1), len(self.__nodes)))
         )
-        if master:
-            to_remove_node = [self.__master_node]
+        if main:
+            to_remove_node = [self.__main_node]
         else:
             to_remove_node = self.__nodes[-num_nodes:]
         self.__log.info(
             "Starting rebalance-out nodes:{0} at {1} cluster {2}".format(
-                to_remove_node, self.__name, self.__master_node.ip))
+                to_remove_node, self.__name, self.__main_node.ip))
         task = self.__clusterop.async_rebalance(
             self.__nodes,
             [],
@@ -2709,19 +2709,19 @@ class CouchbaseCluster:
 
         [self.__nodes.remove(node) for node in to_remove_node]
 
-        if master:
-            self.__master_node = self.__nodes[0]
+        if main:
+            self.__main_node = self.__nodes[0]
 
         return task
 
-    def async_rebalance_out_master(self):
-        return self.__async_rebalance_out(master=True)
+    def async_rebalance_out_main(self):
+        return self.__async_rebalance_out(main=True)
 
     def async_rebalance_out(self, num_nodes=1):
         return self.__async_rebalance_out(num_nodes=num_nodes)
 
-    def rebalance_out_master(self):
-        task = self.__async_rebalance_out(master=True)
+    def rebalance_out_main(self):
+        task = self.__async_rebalance_out(main=True)
         task.result()
 
     def rebalance_out(self, num_nodes=1):
@@ -2743,7 +2743,7 @@ class CouchbaseCluster:
             to_add_node.append(FloatingServers._serverlist.pop())
         self.__log.info(
             "Starting rebalance-in nodes:{0} at {1} cluster {2}".format(
-                to_add_node, self.__name, self.__master_node.ip))
+                to_add_node, self.__name, self.__main_node.ip))
         task = self.__clusterop.async_rebalance(self.__nodes, to_add_node, [],
                                                 services=services)
         self.__nodes.extend(to_add_node)
@@ -2756,12 +2756,12 @@ class CouchbaseCluster:
         task = self.async_rebalance_in(num_nodes, services=services)
         task.result()
 
-    def __async_swap_rebalance(self, master=False, num_nodes=1, services=None):
+    def __async_swap_rebalance(self, main=False, num_nodes=1, services=None):
         """Swap-rebalance nodes on Cluster
-        @param master: True if swap-rebalance master node else False.
+        @param main: True if swap-rebalance main node else False.
         """
-        if master:
-            to_remove_node = [self.__master_node]
+        if main:
+            to_remove_node = [self.__main_node]
         else:
             to_remove_node = self.__nodes[len(self.__nodes) - num_nodes:]
 
@@ -2781,7 +2781,7 @@ class CouchbaseCluster:
             "Starting swap-rebalance [remove_node:{0}] -> [add_node:{1}] at"
             " {2} cluster {3}"
                 .format(to_remove_node, to_add_node, self.__name,
-                        self.__master_node.ip))
+                        self.__main_node.ip))
         task = self.__clusterop.async_rebalance(
             self.__nodes,
             to_add_node,
@@ -2793,42 +2793,42 @@ class CouchbaseCluster:
 
         self.__nodes.extend(to_add_node)
 
-        if master:
-            self.__master_node = self.__nodes[0]
+        if main:
+            self.__main_node = self.__nodes[0]
 
         return task
 
-    def async_swap_rebalance_master(self, services=None):
+    def async_swap_rebalance_main(self, services=None):
         """
            Returns without waiting for swap rebalance to complete
         """
-        return self.__async_swap_rebalance(master=True, services=services)
+        return self.__async_swap_rebalance(main=True, services=services)
 
     def async_swap_rebalance(self, num_nodes=1, services=None):
         return self.__async_swap_rebalance(num_nodes=num_nodes,
                                            services=services)
 
-    def swap_rebalance_master(self, services=None):
-        """Swap rebalance master node and wait
+    def swap_rebalance_main(self, services=None):
+        """Swap rebalance main node and wait
         """
-        task = self.__async_swap_rebalance(master=True, services=services)
+        task = self.__async_swap_rebalance(main=True, services=services)
         task.result()
 
     def swap_rebalance(self, services=None, num_nodes=1):
-        """Swap rebalance non-master node
+        """Swap rebalance non-main node
         """
         task = self.__async_swap_rebalance(services=services,
                                            num_nodes=num_nodes)
         task.result()
 
-    def async_failover_and_rebalance(self, master=False, num_nodes=1,
+    def async_failover_and_rebalance(self, main=False, num_nodes=1,
                                      graceful=False):
         """Asynchronously failover nodes from Cluster
-        @param master: True if failover master node only.
+        @param main: True if failover main node only.
         @param num_nodes: number of nodes to rebalance-out from cluster.
         @param graceful: True if graceful failover else False.
         """
-        task = self.__async_failover(master=master,
+        task = self.__async_failover(main=main,
                                      num_nodes=num_nodes,
                                      graceful=graceful)
         task.result()
@@ -2836,21 +2836,21 @@ class CouchbaseCluster:
                                                  services=None)
         return tasks
 
-    def failover(self, master=False, num_nodes=1,
+    def failover(self, main=False, num_nodes=1,
                                      graceful=False):
         """synchronously failover nodes from Cluster
-        @param master: True if failover master node only.
+        @param main: True if failover main node only.
         @param num_nodes: number of nodes to rebalance-out from cluster.
         @param graceful: True if graceful failover else False.
         """
-        task = self.__async_failover(master=master,
+        task = self.__async_failover(main=main,
                                      num_nodes=num_nodes,
                                      graceful=graceful)
         task.result()
 
-    def __async_failover(self, master=False, num_nodes=1, graceful=False, node=None):
+    def __async_failover(self, main=False, num_nodes=1, graceful=False, node=None):
         """Failover nodes from Cluster
-        @param master: True if failover master node only.
+        @param main: True if failover main node only.
         @param num_nodes: number of nodes to rebalance-out from cluster.
         @param graceful: True if graceful failover else False.
         @param node: Specific node to be failed over
@@ -2862,14 +2862,14 @@ class CouchbaseCluster:
         )
         if node:
             self.__fail_over_nodes = [node]
-        elif master:
-            self.__fail_over_nodes = [self.__master_node]
+        elif main:
+            self.__fail_over_nodes = [self.__main_node]
         else:
             self.__fail_over_nodes = self.__nodes[-num_nodes:]
 
         self.__log.info(
             "Starting failover for nodes:{0} at {1} cluster {2}".format(
-                self.__fail_over_nodes, self.__name, self.__master_node.ip))
+                self.__fail_over_nodes, self.__name, self.__main_node.ip))
         task = self.__clusterop.async_failover(
             self.__nodes,
             self.__fail_over_nodes,
@@ -2877,41 +2877,41 @@ class CouchbaseCluster:
 
         return task
 
-    def async_failover(self, master=False, num_nodes=1, graceful=False,node=None):
-        return self.__async_failover(master=master, num_nodes=num_nodes, graceful=graceful, node=node)
+    def async_failover(self, main=False, num_nodes=1, graceful=False,node=None):
+        return self.__async_failover(main=main, num_nodes=num_nodes, graceful=graceful, node=node)
 
-    def failover_and_rebalance_master(self, graceful=False, rebalance=True):
-        """Failover master node
+    def failover_and_rebalance_main(self, graceful=False, rebalance=True):
+        """Failover main node
         @param graceful: True if graceful failover else False
         @param rebalance: True if do rebalance operation after failover.
         """
-        task = self.__async_failover(master=True, graceful=graceful)
+        task = self.__async_failover(main=True, graceful=graceful)
         task.result()
         if graceful:
             # wait for replica update
             time.sleep(60)
             # use rebalance stats to monitor failover
-            RestConnection(self.__master_node).monitorRebalance()
+            RestConnection(self.__main_node).monitorRebalance()
         if rebalance:
             self.rebalance_failover_nodes()
-        self.__master_node = self.__nodes[0]
+        self.__main_node = self.__nodes[0]
 
     def failover_and_rebalance_nodes(self, num_nodes=1, graceful=False,
                                      rebalance=True):
-        """ Failover non-master nodes
+        """ Failover non-main nodes
         @param num_nodes: number of nodes to failover.
         @param graceful: True if graceful failover else False
         @param rebalance: True if do rebalance operation after failover.
         """
         task = self.__async_failover(
-            master=False,
+            main=False,
             num_nodes=num_nodes,
             graceful=graceful)
         task.result()
         if graceful:
             time.sleep(60)
             # use rebalance stats to monitor failover
-            RestConnection(self.__master_node).monitorRebalance()
+            RestConnection(self.__main_node).monitorRebalance()
         if rebalance:
             self.rebalance_failover_nodes()
 
@@ -2928,7 +2928,7 @@ class CouchbaseCluster:
             len(self.__fail_over_nodes) < 1,
             FTSException("No failover nodes available to add_back")
         )
-        rest = RestConnection(self.__master_node)
+        rest = RestConnection(self.__main_node)
         server_nodes = rest.node_statuses()
         for failover_node in self.__fail_over_nodes:
             for server_node in server_nodes:
@@ -2950,20 +2950,20 @@ class CouchbaseCluster:
             @param recovery_type: delta/full
         """
         task = self.__async_failover(
-            master=False,
+            main=False,
             num_nodes=num_nodes,
             graceful=graceful)
         task.result()
         time.sleep(60)
         if graceful:
             # use rebalance stats to monitor failover
-            RestConnection(self.__master_node).monitorRebalance()
+            RestConnection(self.__main_node).monitorRebalance()
 
         raise_if(
             len(self.__fail_over_nodes) < 1,
             FTSException("No failover nodes available to add_back")
         )
-        rest = RestConnection(self.__master_node)
+        rest = RestConnection(self.__main_node)
         server_nodes = rest.node_statuses()
         for failover_node in self.__fail_over_nodes:
             for server_node in server_nodes:
@@ -2980,14 +2980,14 @@ class CouchbaseCluster:
         tasks = self.__clusterop.async_rebalance(self.__nodes, [], [], services=services)
         return tasks
 
-    def warmup_node(self, master=False):
+    def warmup_node(self, main=False):
         """Warmup node on cluster
-        @param master: True if warmup master-node else False.
+        @param main: True if warmup main-node else False.
         """
         from random import randrange
 
-        if master:
-            warmup_node = self.__master_node
+        if main:
+            warmup_node = self.__main_node
 
         else:
             warmup_node = self.__nodes[
@@ -2997,11 +2997,11 @@ class CouchbaseCluster:
         NodeHelper.do_a_warm_up(warmup_node)
         return warmup_node
 
-    def reboot_one_node(self, test_case, master=False):
+    def reboot_one_node(self, test_case, main=False):
         from random import randrange
 
-        if master:
-            reboot_node = self.__master_node
+        if main:
+            reboot_node = self.__main_node
 
         else:
             reboot_node = self.__nodes[
@@ -3151,8 +3151,8 @@ class FTSBaseTest(unittest.TestCase):
         use_hostanames = self._input.param("use_hostnames", False)
         no_buckets = self._input.param("no_buckets", False)
         sdk_compression = self._input.param("sdk_compression", True)
-        master = self._input.servers[0]
-        first_node = copy.deepcopy(master)
+        main = self._input.servers[0]
+        first_node = copy.deepcopy(main)
         self._cb_cluster = CouchbaseCluster("C1",
                                             [first_node],
                                             self.log,
@@ -3167,16 +3167,16 @@ class FTSBaseTest(unittest.TestCase):
         self._enable_diag_eval_on_non_local_hosts()
         # Add built-in user
         testuser = [{'id': 'cbadminbucket', 'name': 'cbadminbucket', 'password': 'password'}]
-        RbacBase().create_user_source(testuser, 'builtin', master)
+        RbacBase().create_user_source(testuser, 'builtin', main)
         
         # Assign user to role
         role_list = [{'id': 'cbadminbucket', 'name': 'cbadminbucket', 'roles': 'admin'}]
-        RbacBase().add_user_role(role_list, RestConnection(master), 'builtin')
+        RbacBase().add_user_role(role_list, RestConnection(main), 'builtin')
         
         self.__set_free_servers()
         if not no_buckets:
             self.__create_buckets()
-        self._master = self._cb_cluster.get_master_node()
+        self._main = self._cb_cluster.get_main_node()
 
         # simply append to this list, any error from log we want to fail test on
         self.__report_error_list = []
@@ -3193,17 +3193,17 @@ class FTSBaseTest(unittest.TestCase):
         Enable diag/eval to be run on non-local hosts.
         :return: Nothing
         """
-        master = self._cb_cluster.get_master_node()
-        remote = RemoteMachineShellConnection(master)
+        main = self._cb_cluster.get_main_node()
+        remote = RemoteMachineShellConnection(main)
         output, error = remote.enable_diag_eval_on_non_local_hosts()
         if output is not None:
             if "ok" not in output:
-                self.log.error("Error in enabling diag/eval on non-local hosts on {}".format(master.ip))
-                raise Exception("Error in enabling diag/eval on non-local hosts on {}".format(master.ip))
+                self.log.error("Error in enabling diag/eval on non-local hosts on {}".format(main.ip))
+                raise Exception("Error in enabling diag/eval on non-local hosts on {}".format(main.ip))
             else:
                 self.log.info(
                     "Enabled diag/eval for non-local hosts from {}".format(
-                        master.ip))
+                        main.ip))
         else:
             self.log.info("Running in compatibility mode, not enabled diag/eval for non-local hosts")
     

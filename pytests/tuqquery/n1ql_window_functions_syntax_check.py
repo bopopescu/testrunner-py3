@@ -231,7 +231,7 @@ class WindowFunctionsSyntaxTest(QueryTests):
         return result
 
     def init_nodes(self):
-        test_bucket_params = self._create_bucket_params(server=self.master, size=self.bucket_size,
+        test_bucket_params = self._create_bucket_params(server=self.main, size=self.bucket_size,
                                                         replicas=self.num_replicas, bucket_type=self.bucket_type,
                                                         enable_replica_index=self.enable_replica_index,
                                                         eviction_policy=self.eviction_policy, lww=self.lww)

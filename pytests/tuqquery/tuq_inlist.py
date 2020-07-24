@@ -42,7 +42,7 @@ class InListOperatorTests(QueryTests):
     def setUp(self):
         super(InListOperatorTests, self).setUp()
         for bucket in self.buckets:
-            self.cluster.bucket_flush(self.master, bucket=bucket,
+            self.cluster.bucket_flush(self.main, bucket=bucket,
                                       timeout=self.wait_timeout * 5)
         self.log.info("==============  InListOperatorTests setup has started ==============")
         self.log.info("==============  InListOperatorTests setup has completed ==============")
@@ -349,9 +349,9 @@ class InListOperatorTests(QueryTests):
         cmd = ("{3} -u {0}:{1} http://{2}:8093/query/service -d " \
               "statement='select varchar_field from temp_bucket where int_field in [1,$1,3,$2,$3,6,$4,8,$5,10,$6,12,13,$7,15,16,17,18,19] order by varchar_field&" \
                +args+"'").\
-              format('Administrator', 'password', self.master.ip, self.curl_path)
+              format('Administrator', 'password', self.main.ip, self.curl_path)
 
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
 
         output, error = shell.execute_command(cmd)
         query_or = "select varchar_field from temp_bucket where int_field=1 or int_field=%d or int_field=3 or int_field=%d or int_field=%d or int_field=6"\
@@ -375,9 +375,9 @@ class InListOperatorTests(QueryTests):
         cmd = ("{3} -u {0}:{1} http://{2}:8093/query/service -d " \
               "statement='select varchar_field from temp_bucket where int_field in $1 order by varchar_field&" \
                +args+"'").\
-              format('Administrator', 'password', self.master.ip, self.curl_path)
+              format('Administrator', 'password', self.main.ip, self.curl_path)
 
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
         output, error = shell.execute_command(cmd)
 
         query_or = "select varchar_field from temp_bucket where int_field=1 or int_field=2 or int_field=3 or int_field=4 or int_field=5 or int_field=6 or int_field=7 or int_field=8 or "\
@@ -423,7 +423,7 @@ class InListOperatorTests(QueryTests):
 
 
     def _unload_test_data(self):
-        self.cluster.bucket_delete(self.master, "temp_bucket")
+        self.cluster.bucket_delete(self.main, "temp_bucket")
 
 
     def _load_test_data(self):
@@ -435,14 +435,14 @@ class InListOperatorTests(QueryTests):
                                                "string16", "string17", "string18", "string19", "string20"]
                              }
 
-        temp_bucket_params = self._create_bucket_params(server=self.master, size=self.bucket_size,
+        temp_bucket_params = self._create_bucket_params(server=self.main, size=self.bucket_size,
                                                         replicas=self.num_replicas, bucket_type=self.bucket_type,
                                                         enable_replica_index=self.enable_replica_index,
                                                         eviction_policy=self.eviction_policy, lww=self.lww)
         self.cluster.create_standard_bucket("temp_bucket", 11222, temp_bucket_params)
 
         for bucket in self.buckets:
-            self.cluster.bucket_flush(self.master, bucket=bucket, timeout=self.wait_timeout * 5)
+            self.cluster.bucket_flush(self.main, bucket=bucket, timeout=self.wait_timeout * 5)
 
         for i1 in range(len(test_data["int_field"])):
             for i2 in range(len(test_data["bool_field"])):

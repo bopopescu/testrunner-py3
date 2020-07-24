@@ -57,7 +57,7 @@ class QueryMiscTests(QueryTests):
         createdIndex = False
         createdBucket = False
         try:
-            temp_bucket_params = self._create_bucket_params(server=self.master, size=self.bucket_size,
+            temp_bucket_params = self._create_bucket_params(server=self.main, size=self.bucket_size,
                                                             replicas=self.num_replicas, bucket_type=self.bucket_type,
                                                             enable_replica_index=self.enable_replica_index,
                                                             eviction_policy=self.eviction_policy, lww=self.lww)
@@ -106,14 +106,14 @@ class QueryMiscTests(QueryTests):
                 self.run_cbq_query()
                 self.wait_for_index_drop("temp_bucket", "ix1", ["severity", "deferred"], self.gsi_type)
             if createdBucket:
-                self.cluster.bucket_delete(self.master, "temp_bucket")
+                self.cluster.bucket_delete(self.main, "temp_bucket")
 
     '''MB-28636: query with OrderedIntersect scan returns empty result set intermittently'''
     def test_orderintersectscan_nonempty_results(self):
         createdIndexes = {}
         createdBucket = False
         try:
-            temp_bucket_params = self._create_bucket_params(server=self.master, size=self.bucket_size,
+            temp_bucket_params = self._create_bucket_params(server=self.main, size=self.bucket_size,
                                                             replicas=self.num_replicas, bucket_type=self.bucket_type,
                                                             enable_replica_index=self.enable_replica_index,
                                                             eviction_policy=self.eviction_policy, lww=self.lww)
@@ -158,13 +158,13 @@ class QueryMiscTests(QueryTests):
                 self.run_cbq_query()
                 self.wait_for_index_drop("temp_bucket", index, createdIndexes[index], self.gsi_type)
             if createdBucket:
-                self.cluster.bucket_delete(self.master, "temp_bucket")
+                self.cluster.bucket_delete(self.main, "temp_bucket")
 
     def test_intersectscan_thread_growth(self):
         createdIndexes = {}
         createdBucket = False
         try:
-            temp_bucket_params = self._create_bucket_params(server=self.master, size=self.bucket_size,
+            temp_bucket_params = self._create_bucket_params(server=self.main, size=self.bucket_size,
                                                             replicas=self.num_replicas, bucket_type=self.bucket_type,
                                                             enable_replica_index=self.enable_replica_index,
                                                             eviction_policy=self.eviction_policy, lww=self.lww)
@@ -255,7 +255,7 @@ class QueryMiscTests(QueryTests):
                 self.run_cbq_query()
                 self.wait_for_index_drop("temp_bucket", index, createdIndexes[index], self.gsi_type)
             if createdBucket:
-                self.cluster.bucket_delete(self.master, "temp_bucket")
+                self.cluster.bucket_delete(self.main, "temp_bucket")
 
     '''MB-31600 Indexing meta().id for binary data was broken, the index would contain no data'''
     '''bug has not been fixed, will fail until then'''
@@ -265,7 +265,7 @@ class QueryMiscTests(QueryTests):
         item_count = 10
         for bucket in self.buckets:
             if bucket.name == "default":
-                self.cluster.bucket_flush(self.master, bucket=bucket, timeout=180000)
+                self.cluster.bucket_flush(self.main, bucket=bucket, timeout=180000)
         bucket_doc_map = {"default": 0}
         bucket_status_map = {"default": "healthy"}
         self.wait_for_buckets_status(bucket_status_map, 5, 120)
@@ -354,7 +354,7 @@ class QueryMiscTests(QueryTests):
         curl = "curl "
         credentials = [("full", "-u Administrator:password "), ("none", " ")]
         protocols = [("insecure", " ", "http://", ":9102"), ("secure", "-k ", "https://", ":19102")]
-        ips = [self.master.ip]
+        ips = [self.main.ip]
         endpoints = ["/stats",
                      "/listMetadataTokens",
                      "/debug/pprof/",
@@ -422,7 +422,7 @@ class QueryMiscTests(QueryTests):
     '''https://issues.couchbase.com/browse/CBSE-6593'''
     def test_query_cpu_max_utilization(self):
         try:
-            self.cluster.bucket_flush(self.master, bucket="default", timeout=180000)
+            self.cluster.bucket_flush(self.main, bucket="default", timeout=180000)
             self.query = "create index idx1 on default(ln,lk)"
             self.run_cbq_query()
             self._wait_for_index_online("default", "idx1")
@@ -445,7 +445,7 @@ class QueryMiscTests(QueryTests):
             cpu_rdy = False
             while time.time() < end_time:
                 cluster_stats = self.rest.get_cluster_stats()
-                node_stats = cluster_stats[str(self.master.ip) + ":8091"]
+                node_stats = cluster_stats[str(self.main.ip) + ":8091"]
                 cpu_utilization = node_stats['cpu_utilization']
                 self.log.info("waiting for cpu utilization (" + str(cpu_utilization) + ") < 20.00")
                 if cpu_utilization < 20.00:
@@ -464,7 +464,7 @@ class QueryMiscTests(QueryTests):
             cpu_stats = []
             while time.time() < end_time:
                 cluster_stats = self.rest.get_cluster_stats()
-                node_stats = cluster_stats[str(self.master.ip) + ":8091"]
+                node_stats = cluster_stats[str(self.main.ip) + ":8091"]
                 cpu_utilization = node_stats['cpu_utilization']
                 self.log.info("**** CPU Utilization is " + str(cpu_utilization) + "****")
                 cpu_stats.append(cpu_utilization)
@@ -473,7 +473,7 @@ class QueryMiscTests(QueryTests):
             for t in thread_list:
                 t.join()
 
-            response, content = self.rest.get_query_vitals(self.master)
+            response, content = self.rest.get_query_vitals(self.main)
             query_vitals = json.loads(content)
             self.log.info("query vitals: " + str(query_vitals))
             self.log.info("cpu utilization stats: " + str(cpu_stats))
@@ -484,7 +484,7 @@ class QueryMiscTests(QueryTests):
             if createdIndex:
                 self.drop_index("default", "idx1")
                 self.wait_for_index_drop("default", "idx1")
-            self.cluster.bucket_flush(self.master, bucket="default", timeout=180000)
+            self.cluster.bucket_flush(self.main, bucket="default", timeout=180000)
 
     def run_insert_query(self):
         values = 'VALUES(UUID(),{"ln":"null","lk":"null"}),'*999

@@ -20,10 +20,10 @@ class XDCRAdvFilterTests(XDCRNewBaseTest):
         XDCRNewBaseTest.setUp(self)
         self.src_cluster = self.get_cb_cluster_by_name('C1')
         self.dest_cluster = self.get_cb_cluster_by_name('C2')
-        self.src_master = self.src_cluster.get_master_node()
-        self.dest_master = self.dest_cluster.get_master_node()
-        self.src_rest = RestConnection(self.src_master)
-        self.dest_rest = RestConnection(self.dest_master)
+        self.src_main = self.src_cluster.get_main_node()
+        self.dest_main = self.dest_cluster.get_main_node()
+        self.src_rest = RestConnection(self.src_main)
+        self.dest_rest = RestConnection(self.dest_main)
         initial_xdcr = random.choice([True, False])
         if initial_xdcr:
             self.load_data()
@@ -49,7 +49,7 @@ class XDCRAdvFilterTests(XDCRNewBaseTest):
     def load_data(self, server=None, bucket="default"):
         try:
             if not server:
-                server = self.src_master.ip
+                server = self.src_main.ip
             num_docs = self._input.param("items", 10)
             JSONDoc(server=server, username="Administrator", password="password",
                     bucket=bucket, startseqnum=random.randrange(1, 10000000, 1),
@@ -63,11 +63,11 @@ class XDCRAdvFilterTests(XDCRNewBaseTest):
     def verify_results(self):
         rdirection = self._input.param("rdirection", "unidirection")
         replications = self.src_rest.get_replications()
-        self.verify_filtered_items(self.src_master, self.dest_master, replications)
+        self.verify_filtered_items(self.src_main, self.dest_main, replications)
         if rdirection == "bidirection":
-            self.load_data(self.dest_master.ip)
+            self.load_data(self.dest_main.ip)
             replications = self.dest_rest.get_replications()
-            self.verify_filtered_items(self.dest_master, self.src_master, replications, skip_index=True)
+            self.verify_filtered_items(self.dest_main, self.src_main, replications, skip_index=True)
 
     def test_xdcr_with_filter(self):
         tasks = []

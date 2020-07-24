@@ -78,9 +78,9 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
         rest.set_service_memoryQuota(service='indexMemoryQuota',
                                           memoryQuota=256)
 
-        master_rest = RestConnection(self.master)
+        main_rest = RestConnection(self.main)
 
-        self.shell.execute_cbworkloadgen(master_rest.username, master_rest.password, 700000, 100, "default", 1024, '-j')
+        self.shell.execute_cbworkloadgen(main_rest.username, main_rest.password, 700000, 100, "default", 1024, '-j')
 
         index_stats = rest.get_indexer_stats()
         self.log.info(index_stats["indexer_state"])
@@ -219,7 +219,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
             self.nodes_in_list = [extra_nodes[0]]
             self.nodes_out_dist = "kv:1"
             self.services_in = ["kv"]
-            self.targetMaster = False
+            self.targetMain = False
             self.generate_map_nodes_out_dist()
             pre_recovery_tasks = self.async_run_operations(phase="before")
             self._run_tasks([pre_recovery_tasks])
@@ -268,7 +268,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
                 self.servers[:self.nodes_init],
                 self.nodes_in_list,
                 self.nodes_out_list, services=self.services_in)
-            stopped = RestConnection(self.master).stop_rebalance(
+            stopped = RestConnection(self.main).stop_rebalance(
                 wait_timeout=self.wait_timeout // 3)
             self.assertTrue(stopped, msg="Unable to stop rebalance")
             rebalance.result()
@@ -384,7 +384,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
             self._create_replica_indexes()
             servr_out = self.nodes_out_list
             failover_task = self.cluster.async_failover(
-                [self.master],
+                [self.main],
                 failover_nodes=servr_out,
                 graceful=self.graceful)
             mid_recovery_tasks = self.async_run_operations(phase="in_between")
@@ -392,7 +392,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
             if self.graceful:
                 # Check if rebalance is still running
                 msg = "graceful failover failed for nodes"
-                check_rblnc = RestConnection(self.master).monitorRebalance(
+                check_rblnc = RestConnection(self.main).monitorRebalance(
                     stop_if_loop=True)
                 self.assertTrue(check_rblnc, msg=msg)
             self._run_tasks([kvOps_tasks, mid_recovery_tasks])
@@ -412,10 +412,10 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
 
     def test_failover_add_back(self):
         try:
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             recoveryType = self.input.param("recoveryType", "full")
             servr_out = self.nodes_out_list
-            failover_task =self.cluster.async_failover([self.master],
+            failover_task =self.cluster.async_failover([self.main],
                     failover_nodes=servr_out, graceful=self.graceful)
             failover_task.result()
             pre_recovery_tasks = self.async_run_operations(phase="before")
@@ -458,7 +458,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
         Indexer add back scenarios
         :return:
         """
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         recoveryType = self.input.param("recoveryType", "full")
         indexer_out = int(self.input.param("nodes_out", 0))
         nodes = self.get_nodes_from_services_map(service_type="index",
@@ -474,7 +474,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
             self._create_replica_indexes()
             servr_out = nodes[:indexer_out]
             failover_task =self.cluster.async_failover(
-                [self.master], failover_nodes=servr_out,
+                [self.main], failover_nodes=servr_out,
                 graceful=self.graceful)
             failover_task.result()
             nodes_all = rest.node_statuses()
@@ -547,7 +547,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
         self.get_dgm_for_plasma()
         kvOps_tasks = self._run_kvops_tasks()
         autofailover_timeout = 30
-        conn = RestConnection(self.master)
+        conn = RestConnection(self.main)
         status = conn.update_autofailover_settings(True, autofailover_timeout)
         self.assertTrue(status, 'failed to change autofailover_settings!')
         try:
@@ -615,7 +615,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
         compact_tasks = []
         for bucket in self.buckets:
             compact_tasks.append(self.cluster.async_compact_bucket(
-                self.master, bucket))
+                self.main, bucket))
         mid_recovery_tasks = self.async_run_operations(phase="in_between")
         self._run_tasks([kvOps_tasks, mid_recovery_tasks])
         for task in compact_tasks:
@@ -653,7 +653,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
         #Flush the bucket
         for bucket in self.buckets:
             log.info("Flushing bucket {0}...".format(bucket.name))
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             rest.flush_bucket(bucket.name)
             count = 0
             while rest.get_bucket_status(bucket.name) != "healthy" and \
@@ -691,7 +691,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
         # Get count before rollback
         bucket_before_item_counts = {}
         for bucket in self.buckets:
-            bucket_count_before_rollback = self.get_item_count(self.master, bucket.name)
+            bucket_count_before_rollback = self.get_item_count(self.main, bucket.name)
             bucket_before_item_counts[bucket.name] = bucket_count_before_rollback
             log.info("Items in bucket {0} before rollback = {1}".format(
                 bucket.name, bucket_count_before_rollback))
@@ -700,7 +700,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
         self._verify_bucket_count_with_index_count()
         self.multi_query_using_index()
 
-        # Kill memcached on Node A so that Node B becomes master
+        # Kill memcached on Node A so that Node B becomes main
         self.log.info("Kill Memcached process on NodeA")
         shell = RemoteMachineShellConnection(data_nodes[0])
         shell.kill_memcached()
@@ -725,7 +725,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
 
         bucket_after_item_counts = {}
         for bucket in self.buckets:
-            bucket_count_after_rollback = self.get_item_count(self.master, bucket.name)
+            bucket_count_after_rollback = self.get_item_count(self.main, bucket.name)
             bucket_after_item_counts[bucket.name] = bucket_count_after_rollback
             log.info("Items in bucket {0} after rollback = {1}".format(
                 bucket.name, bucket_count_after_rollback))
@@ -767,7 +767,7 @@ class SecondaryIndexingRecoveryTests(BaseSecondaryIndexingTests):
 
     def _find_index_lost_when_indexer_down(self):
         lost_indexes = []
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_status()
         log.info("index_map: {0}".format(index_map))
         for index_node in self.index_nodes_out:

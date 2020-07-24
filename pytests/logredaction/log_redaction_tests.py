@@ -28,7 +28,7 @@ class LogRedactionTests(LogRedactionBase):
         self.start_logs_collection()
         result = self.monitor_logs_collection()
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]
@@ -43,7 +43,7 @@ class LogRedactionTests(LogRedactionBase):
         self.start_logs_collection()
         result = self.monitor_logs_collection()
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         nonredactFileName = logs_path.split('/')[-1]
@@ -54,21 +54,21 @@ class LogRedactionTests(LogRedactionBase):
     def test_ns_server_with_redaction_enabled(self):
         #load bucket and do some ops
         gen_create = BlobGenerator('logredac', 'logredac-', self.value_size, end=self.num_items)
-        self._load_all_buckets(self.master, gen_create, "create", 0)
+        self._load_all_buckets(self.main, gen_create, "create", 0)
 
         gen_delete = BlobGenerator('logredac', 'logredac-', self.value_size, start=self.num_items // 2, end=self.num_items)
         gen_update = BlobGenerator('logredac', 'logredac-', self.value_size, start=self.num_items + 1,
                                    end=self.num_items * 3 // 2)
 
-        self._load_all_buckets(self.master, gen_delete, "create", 0)
-        self._load_all_buckets(self.master, gen_update, "create", 0)
+        self._load_all_buckets(self.main, gen_delete, "create", 0)
+        self._load_all_buckets(self.main, gen_update, "create", 0)
 
         #set log redaction level, collect logs, verify log files exist and verify them for redaction
         self.set_redaction_level()
         self.start_logs_collection()
         result = self.monitor_logs_collection()
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]
@@ -84,16 +84,16 @@ class LogRedactionTests(LogRedactionBase):
 
     def test_ns_server_with_rebalance_failover_with_redaction_enabled(self):
         kv_node = self.get_nodes_from_services_map(service_type="kv", get_all_nodes=False)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         # load bucket and do some ops
         gen_create = BlobGenerator('logredac', 'logredac-', self.value_size, end=self.num_items)
-        self._load_all_buckets(self.master, gen_create, "create", 0)
+        self._load_all_buckets(self.main, gen_create, "create", 0)
         gen_delete = BlobGenerator('logredac', 'logredac-', self.value_size, start=self.num_items // 2,
                                    end=self.num_items)
         gen_update = BlobGenerator('logredac', 'logredac-', self.value_size, start=self.num_items + 1,
                                    end=self.num_items * 3 // 2)
-        self._load_all_buckets(self.master, gen_delete, "create", 0)
-        self._load_all_buckets(self.master, gen_update, "create", 0)
+        self._load_all_buckets(self.main, gen_delete, "create", 0)
+        self._load_all_buckets(self.main, gen_update, "create", 0)
         # set log redaction level, collect logs, verify log files exist and verify them for redaction
         self.set_redaction_level()
         self.start_logs_collection()
@@ -105,7 +105,7 @@ class LogRedactionTests(LogRedactionBase):
         rebalance.result()
         # failover a node
         server_failed_over = self.servers[self.nodes_init]
-        fail_over_task = self.cluster.async_failover([self.master], failover_nodes=[server_failed_over], graceful=True)
+        fail_over_task = self.cluster.async_failover([self.main], failover_nodes=[server_failed_over], graceful=True)
         fail_over_task.result()
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], [server_failed_over])
         reached = RestHelper(rest).rebalance_reached()
@@ -114,7 +114,7 @@ class LogRedactionTests(LogRedactionBase):
         result = self.monitor_logs_collection()
         log.info(result)
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]
@@ -180,7 +180,7 @@ class LogRedactionTests(LogRedactionBase):
         gen_docs = json_generator.generate_all_type_documents_for_gsi(docs_per_day=self.doc_per_day, start=0)
         full_docs_list = self.generate_full_docs_list(gen_docs)
         n1ql_helper = N1QLHelper(use_rest=True, buckets=self.buckets, full_docs_list=full_docs_list,
-                                      log=log, input=self.input, master=self.master)
+                                      log=log, input=self.input, main=self.main)
         self.load(gen_docs)
         n1ql_node = self.get_nodes_from_services_map(service_type="n1ql")
         query_definition_generator = SQLDefinitionGenerator()
@@ -208,7 +208,7 @@ class LogRedactionTests(LogRedactionBase):
         result = self.monitor_logs_collection()
         log.info(result)
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]
@@ -231,7 +231,7 @@ class LogRedactionTests(LogRedactionBase):
         gen_docs = json_generator.generate_all_type_documents_for_gsi(docs_per_day=self.doc_per_day, start=0)
         full_docs_list = self.generate_full_docs_list(gen_docs)
         n1ql_helper = N1QLHelper(use_rest=True, buckets=self.buckets, full_docs_list=full_docs_list,
-                                      log=log, input=self.input, master=self.master)
+                                      log=log, input=self.input, main=self.main)
         self.load(gen_docs)
         n1ql_node = self.get_nodes_from_services_map(service_type="n1ql")
         n1ql_helper.create_primary_index(using_gsi=True, server=n1ql_node)
@@ -252,7 +252,7 @@ class LogRedactionTests(LogRedactionBase):
                 scan_query = query_definition.generate_query(bucket=bucket.name)
                 n1ql_helper.run_cbq_query(query=scan_query, server=n1ql_node)
 
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         rest.flush_bucket(self.buckets[0].name)
 
         self.sleep(100)
@@ -270,7 +270,7 @@ class LogRedactionTests(LogRedactionBase):
         result = self.monitor_logs_collection()
         log.info(result)
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]
@@ -293,7 +293,7 @@ class LogRedactionTests(LogRedactionBase):
         gen_docs = json_generator.generate_all_type_documents_for_gsi(docs_per_day=self.doc_per_day, start=0)
         full_docs_list = self.generate_full_docs_list(gen_docs)
         n1ql_helper = N1QLHelper(use_rest=True, buckets=self.buckets, full_docs_list=full_docs_list,
-                                      log=log, input=self.input, master=self.master)
+                                      log=log, input=self.input, main=self.main)
         self.load(gen_docs)
         n1ql_node = self.get_nodes_from_services_map(service_type="n1ql")
         n1ql_helper.create_primary_index(using_gsi=True, server=n1ql_node)
@@ -332,7 +332,7 @@ class LogRedactionTests(LogRedactionBase):
         result = self.monitor_logs_collection()
         log.info(result)
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]
@@ -355,7 +355,7 @@ class LogRedactionTests(LogRedactionBase):
         gen_docs = json_generator.generate_all_type_documents_for_gsi(docs_per_day=self.doc_per_day, start=0)
         full_docs_list = self.generate_full_docs_list(gen_docs)
         n1ql_helper = N1QLHelper(use_rest=True, buckets=self.buckets, full_docs_list=full_docs_list,
-                                 log=log, input=self.input, master=self.master)
+                                 log=log, input=self.input, main=self.main)
         self.load(gen_docs)
         self.find_nodes_in_list()
         n1ql_node = self.get_nodes_from_services_map(service_type="n1ql")
@@ -394,7 +394,7 @@ class LogRedactionTests(LogRedactionBase):
         result = self.monitor_logs_collection()
         log.info(result)
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]
@@ -416,7 +416,7 @@ class LogRedactionTests(LogRedactionBase):
         self.start_logs_collection()
         result = self.monitor_logs_collection()
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]
@@ -427,7 +427,7 @@ class LogRedactionTests(LogRedactionBase):
                                     nonredactFileName=nonredactFileName)
 
     def test_cbcollect_with_redaction_enabled_with_xdcr(self):
-        rest_src = RestConnection(self.master)
+        rest_src = RestConnection(self.main)
         rest_src.remove_all_replications()
         rest_src.remove_all_remote_clusters()
 
@@ -452,21 +452,21 @@ class LogRedactionTests(LogRedactionBase):
             if repl_id is not None:
                 self.log.info("Replication created successfully")
             gen = BlobGenerator("ent-backup", "ent-backup-", self.value_size, end=self.num_items)
-            tasks = self._async_load_all_buckets(self.master, gen, "create", 0)
+            tasks = self._async_load_all_buckets(self.main, gen, "create", 0)
             for task in tasks:
                 task.result()
             self.sleep(10)
 
             """ enable firewall """
             if self.interrupt_replication:
-                RemoteUtilHelper.enable_firewall(self.master, xdcr=True)
+                RemoteUtilHelper.enable_firewall(self.main, xdcr=True)
 
             """ start collect logs """
             self.start_logs_collection()
             result = self.monitor_logs_collection()
             """ verify logs """
             try:
-                logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+                logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
             except KeyError:
                 logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
             redactFileName = logs_path.split('/')[-1]
@@ -483,7 +483,7 @@ class LogRedactionTests(LogRedactionBase):
         finally:
             """ clean up xdcr """
             if self.interrupt_replication:
-                shell = RemoteMachineShellConnection(self.master)
+                shell = RemoteMachineShellConnection(self.main)
                 shell.disable_firewall()
                 shell.disconnect()
             rest_dest.delete_bucket()
@@ -497,38 +497,38 @@ class LogRedactionTests(LogRedactionBase):
 
     def test_n1ql_through_rest_with_redaction_enabled(self):
         gen_create = BlobGenerator('logredac', 'logredac-', self.value_size, end=self.num_items)
-        self._load_all_buckets(self.master, gen_create, "create", 0)
-        shell = RemoteMachineShellConnection(self.master)
+        self._load_all_buckets(self.main, gen_create, "create", 0)
+        shell = RemoteMachineShellConnection(self.main)
         type = shell.extract_remote_info().distribution_type
         curl_path = "curl"
         if type.lower() == 'windows':
             self.curl_path = "%scurl" % self.path
 
         shell.execute_command("%s -u Administrator:password http://%s:%s/query/service -d 'statement=create primary index on default'"
-                              % (curl_path, self.master.ip, self.n1ql_port))
+                              % (curl_path, self.main.ip, self.n1ql_port))
 
         shell.execute_command("%s -u Administrator:password http://%s:%s/query/service -d 'statement=create index idx on default(fake)'"
-                              % (curl_path, self.master.ip, self.n1ql_port))
+                              % (curl_path, self.main.ip, self.n1ql_port))
 
         shell.execute_command("%s -u Administr:pasword http://%s:%s/query/service -d 'statement=select * from default'"
-                              % (curl_path, self.master.ip, self.n1ql_port))
+                              % (curl_path, self.main.ip, self.n1ql_port))
 
         shell.execute_command("%s http://Administrator:password@%s:%s/query/service -d 'statement=select * from default'"
-                              % (curl_path, self.master.ip, self.n1ql_port))
+                              % (curl_path, self.main.ip, self.n1ql_port))
 
         shell.execute_command("%s -u Administrator:password http://%s:%s/query/service -d 'statement=select * from default'"
-                              % (curl_path, self.master.ip, self.n1ql_port))
+                              % (curl_path, self.main.ip, self.n1ql_port))
 
         # Get the CAS mismatch error by double inserting a document, second one will throw desired error
         shell.execute_command("%s -u Administrator:password http://%s:%s/query/service -d 'statement=insert into default (KEY,VALUE) VALUES(\"test\",{\"field1\":\"test\"})'"
-                              % (curl_path, self.master.ip, self.n1ql_port))
+                              % (curl_path, self.main.ip, self.n1ql_port))
 
         shell.execute_command("%s -u Administrator:password http://%s:%s/query/service -d 'statement=insert into default (KEY,VALUE) VALUES(\"test\",{\"field1\":\"test\"})'"
-                              % (curl_path, self.master.ip, self.n1ql_port))
+                              % (curl_path, self.main.ip, self.n1ql_port))
 
         # Delete a document that does not exist
         shell.execute_command("%s -u Administrator:password http://%s:%s/query/service -d 'statement=DELETE FROM default USE KEYS \"fakekey\"})'"
-                              % (curl_path, self.master.ip, self.n1ql_port))
+                              % (curl_path, self.main.ip, self.n1ql_port))
 
 
         #set log redaction level, collect logs, verify log files exist and verify them for redaction
@@ -536,7 +536,7 @@ class LogRedactionTests(LogRedactionBase):
         self.start_logs_collection()
         result = self.monitor_logs_collection()
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]
@@ -561,14 +561,14 @@ class LogRedactionTests(LogRedactionBase):
 
     def test_fts_log_redaction(self):
         gen_create = BlobGenerator('logredac', 'logredac-', self.value_size, end=self.num_items)
-        self._load_all_buckets(self.master, gen_create, "create", 0)
+        self._load_all_buckets(self.main, gen_create, "create", 0)
         index_definition = {
             "type": "fulltext-index",
             "name": "index1",
             "sourceType": "couchbase",
             "sourceName": "default"
         }
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         status = rest.create_fts_index("index1", index_definition)
         if status:
             log.info("Index 'index1' created")
@@ -583,7 +583,7 @@ class LogRedactionTests(LogRedactionBase):
         self.start_logs_collection()
         result = self.monitor_logs_collection()
         try:
-            logs_path = result["perNode"]["ns_1@" + str(self.master.ip)]["path"]
+            logs_path = result["perNode"]["ns_1@" + str(self.main.ip)]["path"]
         except KeyError:
             logs_path = result["perNode"]["ns_1@127.0.0.1"]["path"]
         redactFileName = logs_path.split('/')[-1]

@@ -331,7 +331,7 @@ class SecondaryIndexingStatsConfigTests(BaseSecondaryIndexingTests, QueryHelperT
         self.verify_arrkey_size(index_map, 'standard_bucket0', expected_distr2)
 
     def test_keysize_rebalance_out(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
 
         create_index_query1 = "CREATE INDEX idx ON default(name) USING GSI  WITH {'nodes': ['%s:%s']}" % (self.servers[1].ip, self.servers[1].port)
         create_index_query2 = "CREATE INDEX idx2 ON default(join_mo) USING GSI WITH {'nodes': ['%s:%s']}" % (self.servers[1].ip, self.servers[1].port)
@@ -402,7 +402,7 @@ class SecondaryIndexingStatsConfigTests(BaseSecondaryIndexingTests, QueryHelperT
         self.verify_key_size(index_map, 'standard_bucket0', expected_distr2)
 
     def test_keysize_rebalance_in(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
 
         if self.move_index:
             create_index_query1 = "CREATE INDEX idx ON default(name) USING GSI"
@@ -505,7 +505,7 @@ class SecondaryIndexingStatsConfigTests(BaseSecondaryIndexingTests, QueryHelperT
         index_node = self.get_nodes_from_services_map(service_type="index",
                                                       get_all_nodes=False)
         rest = RestConnection(index_node)
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
 
         create_index_query = "CREATE INDEX idx ON default(age) USING GSI"
 
@@ -619,7 +619,7 @@ class SecondaryIndexingStatsConfigTests(BaseSecondaryIndexingTests, QueryHelperT
         index_node = self.get_nodes_from_services_map(service_type="index",
                                                       get_all_nodes=False)
         rest = RestConnection(index_node)
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
 
         create_index_query = "CREATE INDEX idx ON default(age) USING GSI"
 

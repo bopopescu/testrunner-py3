@@ -1529,7 +1529,7 @@ class GSIIndexPartitioningTests(GSIReplicaIndexesTests):
                                                       index_metadata),
                     "Deferred Partitioned index created not as expected")
 
-        self.cluster.bucket_delete(server=self.master, bucket='default')
+        self.cluster.bucket_delete(server=self.main, bucket='default')
 
         self.sleep(30)
         index_map = self.get_index_map()
@@ -1838,7 +1838,7 @@ class GSIIndexPartitioningTests(GSIReplicaIndexesTests):
         self.run_async_index_operations(operation_type="create_index")
         self.sleep(30)
 
-        self.cluster.bucket_flush(self.master)
+        self.cluster.bucket_flush(self.main)
         self.sleep(60)
 
         # Get item counts
@@ -1865,9 +1865,9 @@ class GSIIndexPartitioningTests(GSIReplicaIndexesTests):
         # Get count before rollback
         bucket_count_before_rollback, item_count_before_rollback, num_docs_processed_before_rollback = self.get_stats_for_partitioned_indexes()
 
-        # Kill memcached on Node A so that Node B becomes master
+        # Kill memcached on Node A so that Node B becomes main
         self.log.info("Kill Memcached process on NodeA")
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
         shell.kill_memcached()
 
         # Start persistence on Node B
@@ -2785,7 +2785,7 @@ class GSIIndexPartitioningTests(GSIReplicaIndexesTests):
         # rebalance out a indexer node when querying is in progress
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init],
                                                  [], [node_out])
-        stopped = RestConnection(self.master).stop_rebalance(
+        stopped = RestConnection(self.main).stop_rebalance(
             wait_timeout=self.wait_timeout // 3)
         self.assertTrue(stopped, msg="unable to stop rebalance")
         rebalance.result()
@@ -4230,7 +4230,7 @@ class GSIIndexPartitioningTests(GSIReplicaIndexesTests):
 
         # Drop and recreate bucket
         self.cluster.bucket_delete(kv_node, bucket="default")
-        default_params = self._create_bucket_params(server=self.master,
+        default_params = self._create_bucket_params(server=self.main,
                                                     size=self.bucket_size,
                                                     replicas=self.num_replicas)
 
@@ -4420,7 +4420,7 @@ class GSIIndexPartitioningTests(GSIReplicaIndexesTests):
 
         # Drop and recreate bucket
         self.cluster.bucket_delete(kv_node, bucket="default")
-        default_params = self._create_bucket_params(server=self.master,
+        default_params = self._create_bucket_params(server=self.main,
                                                     size=self.bucket_size,
                                                     replicas=self.num_replicas)
 
@@ -4492,7 +4492,7 @@ class GSIIndexPartitioningTests(GSIReplicaIndexesTests):
 
         # Drop and recreate bucket
         self.cluster.bucket_delete(kv_node, bucket="default")
-        default_params = self._create_bucket_params(server=self.master,
+        default_params = self._create_bucket_params(server=self.main,
                                                     size=self.bucket_size,
                                                     replicas=self.num_replicas)
 
@@ -5036,7 +5036,7 @@ class GSIIndexPartitioningTests(GSIReplicaIndexesTests):
     def _load_emp_dataset(self, op_type="create", expiration=0, start=0,
                           end=1000):
         # Load Emp Dataset
-        self.cluster.bucket_flush(self.master)
+        self.cluster.bucket_flush(self.main)
 
         if end > 0:
             self._kv_gen = JsonDocGenerator("emp_",

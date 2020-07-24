@@ -1658,7 +1658,7 @@ class RemoteMachineShellConnection:
         self.log_command_output(o, r)
         self.sleep(20, "wait for cb server start completely after reset vbuckets!")
 
-        """ remove temporary files on slave """
+        """ remove temporary files on subordinate """
         os.remove(local_file)
         os.remove(des_file)
 
@@ -1708,7 +1708,7 @@ class RemoteMachineShellConnection:
         self.log_command_output(o, r)
         self.sleep(20, "wait for cb server start completely after setting CBFT_ENV_OPTIONS")
 
-        """ remove temporary files on slave """
+        """ remove temporary files on subordinate """
         os.remove(local_file)
         os.remove(des_file)
 
@@ -2287,7 +2287,7 @@ class RemoteMachineShellConnection:
                     output, error = self.execute_command("rm -f \
                                /cygdrive/c/automation/{0}".format(capture_iss_file))
                     self.log_command_output(output, error)
-                    log.info("Delete {0} in slave resources/windows/automation dir" \
+                    log.info("Delete {0} in subordinate resources/windows/automation dir" \
                              .format(capture_iss_file))
                     os.system("rm -f resources/windows/automation/{0}" \
                                                           .format(capture_iss_file))
@@ -2723,7 +2723,7 @@ class RemoteMachineShellConnection:
                     output, error = self.execute_command("rm -f \
                                /cygdrive/c/automation/{0}".format(capture_iss_file))
                     self.log_command_output(output, error)
-                    log.info("Delete {0} in slave resources/windows/automation dir" \
+                    log.info("Delete {0} in subordinate resources/windows/automation dir" \
                              .format(capture_iss_file))
                     os.system("rm -f resources/windows/automation/{0}" \
                                                           .format(capture_iss_file))

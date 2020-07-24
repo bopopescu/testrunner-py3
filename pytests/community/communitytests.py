@@ -78,7 +78,7 @@ class CommunityTests(CommunityBaseTest):
 
     def check_ldap_available(self):
         ldap_available = False
-        self.rest = RestConnection(self.master)
+        self.rest = RestConnection(self.main)
         try:
             s, c, h = self.rest.clearLDAPSettings()
             if s:
@@ -94,7 +94,7 @@ class CommunityTests(CommunityBaseTest):
         self.rest.force_eject_node()
         self.sleep(7, "wait for node reset done")
         try:
-            status = self.rest.init_node_services(hostname=self.master.ip,
+            status = self.rest.init_node_services(hostname=self.main.ip,
                                                  services=[self.services])
         except Exception as e:
             if e:
@@ -171,9 +171,9 @@ class CommunityTests(CommunityBaseTest):
         try:
             self.log.info("Initialize node with services {0}"
                                   .format(self.start_node_services))
-            status = self.rest.init_node_services(hostname=self.master.ip,
+            status = self.rest.init_node_services(hostname=self.main.ip,
                                         services=[self.start_node_services])
-            init_node = self.cluster.async_init_node(self.master,
+            init_node = self.cluster.async_init_node(self.main,
                                             services = [self.start_node_services])
         except Exception as e:
             if e:
@@ -200,14 +200,14 @@ class CommunityTests(CommunityBaseTest):
                 self.get_services_map()
                 list_nodes = self.get_nodes_from_services_map(get_all_nodes=True)
                 map = self.get_nodes_services()
-                if map[self.master.ip] == self.start_node_services and \
+                if map[self.main.ip] == self.start_node_services and \
                     map[self.servers[1].ip] == self.add_node_services:
                     self.log.info("services set correctly when node added & rebalance")
                 else:
                     self.fail("services set incorrectly when node added & rebalance. "
                         "cluster expected services: {0}; set cluster services {1} ."
                         "add node expected srv: {2}; set add node srv {3}"\
-                        .format(map[self.master.ip], self.start_node_services, \
+                        .format(map[self.main.ip], self.start_node_services, \
                          map[self.servers[1].ip], self.add_node_services))
             else:
                 if self.version not in COUCHBASE_FROM_WATSON:
@@ -235,11 +235,11 @@ class CommunityTests(CommunityBaseTest):
         """ for windows vm, ask IT to put uniq.exe at
             /cygdrive/c/Program Files (x86)/ICW/bin directory """
 
-        self.remote = RemoteMachineShellConnection(self.master)
+        self.remote = RemoteMachineShellConnection(self.main)
         """ put params items=0 in test param so that init items = 0 """
         self.remote.execute_command("{0}cbworkloadgen -n {1}:8091 -j -i 1000 " \
                                     "-u Administrator -p password" \
-                                            .format(self.bin_path, self.master.ip))
+                                            .format(self.bin_path, self.main.ip))
         """ delete backup location before run backup """
         self.remote.execute_command("rm -rf {0}*".format(self.backup_location))
         output, error = self.remote.execute_command("ls -lh {0}"
@@ -250,7 +250,7 @@ class CommunityTests(CommunityBaseTest):
         self.remote.execute_command("{0}cbbackup http://{1}:8091 {2} -m full " \
                                     "-u Administrator -p password"\
                                     .format(self.bin_path,
-                                            self.master.ip,
+                                            self.main.ip,
                                             self.backup_c_location))
         output, error = self.remote.execute_command("ls -lh {0}*/"
                                         .format(self.backup_location))
@@ -266,12 +266,12 @@ class CommunityTests(CommunityBaseTest):
                       "Expected 1000, actual: {0}".format(output[0]))
         self.remote.execute_command("{0}cbworkloadgen -n {1}:8091 -j -i 1000 "\
                                     " -u Administrator -p password --prefix=t_"
-                                    .format(self.bin_path, self.master.ip))
+                                    .format(self.bin_path, self.main.ip))
         """ do different backup mode """
         self.remote.execute_command("{0}cbbackup -u Administrator -p password "\
                                     "http://{1}:8091 {2} -m {3}"\
                                     .format(self.bin_path,
-                                            self.master.ip,
+                                            self.main.ip,
                                             self.backup_c_location,
                                             self.backup_option))
         output, error = self.remote.execute_command("ls -lh {0}"
@@ -296,7 +296,7 @@ class CommunityTests(CommunityBaseTest):
     def check_ent_backup(self):
         """ for CE version from Watson, cbbackupmgr exe file should not in bin """
         command = "cbbackupmgr"
-        self.remote = RemoteMachineShellConnection(self.master)
+        self.remote = RemoteMachineShellConnection(self.main)
         self.log.info("check if {0} in {1} directory".format(command, self.bin_path))
         found = self.remote.file_exists(self.bin_path, command)
         if found:
@@ -450,15 +450,15 @@ class CommunityTests(CommunityBaseTest):
                                  -d name=bucket0 \
                                  -d maxTTL=100 \
                                  -d authType=sasl \
-                                 -d ramQuotaMB=100 '.format(self.master.ip)
+                                 -d ramQuotaMB=100 '.format(self.main.ip)
         if self.cli_test:
             cmd = "{0}couchbase-cli bucket-create -c {1}:8091 --username Administrator \
                 --password password --bucket bucket0 --bucket-type couchbase \
                 --bucket-ramsize 512 --bucket-replica 1 --bucket-priority high \
                 --bucket-eviction-policy fullEviction --enable-flush 0 \
                 --enable-index-replica 1 --max-ttl 200".format(self.bin_path,
-                                                               self.master.ip)
-        conn = RemoteMachineShellConnection(self.master)
+                                                               self.main.ip)
+        conn = RemoteMachineShellConnection(self.main)
         output, error = conn.execute_command(cmd)
         conn.log_command_output(output, error)
         mesg = "Max TTL is supported in enterprise edition only"
@@ -466,7 +466,7 @@ class CommunityTests(CommunityBaseTest):
             mesg = "Maximum TTL can only be configured on enterprise edition"
         if output and mesg not in str(output[0]):
             self.fail("max ttl feature should not in Community Edition")
-        buckets = RestConnection(self.master).get_buckets()
+        buckets = RestConnection(self.main).get_buckets()
         if buckets:
             for bucket in buckets:
                 self.log.info("bucekt in cluser: {0}".format(bucket.name))
@@ -483,14 +483,14 @@ class CommunityTests(CommunityBaseTest):
             return
         cmd = 'curl -X POST -u Administrator:password \
               http://{0}:8091/settings/audit \
-              -d auditdEnabled=true '.format(self.master.ip)
+              -d auditdEnabled=true '.format(self.main.ip)
         if self.cli_test:
             cmd = "{0}couchbase-cli setting-audit -c {1}:8091 -u Administrator \
                 -p password --audit-enabled 1 --audit-log-rotate-interval 604800 \
                 --audit-log-path /opt/couchbase/var/lib/couchbase/logs "\
-                .format(self.bin_path, self.master.ip)
+                .format(self.bin_path, self.main.ip)
 
-        conn = RemoteMachineShellConnection(self.master)
+        conn = RemoteMachineShellConnection(self.main)
         output, error = conn.execute_command(cmd)
         conn.log_command_output(output, error)
         mesg = "This http API endpoint requires enterprise edition"
@@ -524,16 +524,16 @@ class CommunityTests(CommunityBaseTest):
               http://{0}:8091/settings/autoFailover -d enabled=true -d timeout=120 \
               -d maxCount=1 \
               -d failoverOnDataDiskIssues[enabled]=true {1} \
-              -d failoverServerGroup={2}'.format(self.master.ip, failover_disk_period,
+              -d failoverServerGroup={2}'.format(self.main.ip, failover_disk_period,
                                                  self.failover_server_group)
         if self.cli_test:
             cmd = "{0}couchbase-cli setting-autofailover -c {1}:8091 \
                    -u Administrator -p password \
                    --enable-failover-on-data-disk-issues 1 {2} {3} "\
-                  .format(self.bin_path, self.master.ip,
+                  .format(self.bin_path, self.main.ip,
                           failover_disk_period,
                           failover_server_group)
-        conn = RemoteMachineShellConnection(self.master)
+        conn = RemoteMachineShellConnection(self.main)
         output, error = conn.execute_command(cmd)
         conn.log_command_output(output, error)
         mesg = "Auto failover on Data Service disk issues can only be " + \
@@ -571,7 +571,7 @@ class CommunityTests(CommunityBaseTest):
                                  -d name=bucket0 \
                                  -d compressionMode={1} \
                                  -d authType=sasl \
-                                 -d ramQuotaMB=100 '.format(self.master.ip,
+                                 -d ramQuotaMB=100 '.format(self.main.ip,
                                                             self.compression_mode)
         if self.cli_test:
             cmd = "{0}couchbase-cli bucket-create -c {1}:8091 --username Administrator \
@@ -579,9 +579,9 @@ class CommunityTests(CommunityBaseTest):
                 --bucket-ramsize 512 --bucket-replica 1 --bucket-priority high \
                 --bucket-eviction-policy fullEviction --enable-flush 0 \
                 --enable-index-replica 1 --compression-mode {2}".format(self.bin_path,
-                                                                 self.master.ip,
+                                                                 self.main.ip,
                                                                  self.compression_mode)
-        conn = RemoteMachineShellConnection(self.master)
+        conn = RemoteMachineShellConnection(self.main)
         output, error = conn.execute_command(cmd)
         conn.log_command_output(output, error)
         mesg = "Compression mode is supported in enterprise edition only"
@@ -595,10 +595,10 @@ class CommunityTests(CommunityBaseTest):
 class CommunityXDCRTests(CommunityXDCRBaseTest):
     def setUp(self):
         super(CommunityXDCRTests, self).setUp()
-        self.master = self._servers[0]
+        self.main = self._servers[0]
         self.cli_test = self._input.param("cli_test", False)
         self.bin_path = LINUX_COUCHBASE_BIN_PATH
-        remote = RemoteMachineShellConnection(self.master)
+        remote = RemoteMachineShellConnection(self.main)
         type = remote.extract_remote_info().distribution_type
         if type.lower() == 'windows':
             self.is_linux = False
@@ -609,11 +609,11 @@ class CommunityXDCRTests(CommunityXDCRBaseTest):
         else:
             self.is_linux = True
         self.cb_version = None
-        if RestHelper(RestConnection(self.master)).is_ns_server_running():
+        if RestHelper(RestConnection(self.main)).is_ns_server_running():
             """ since every new couchbase version, there will be new features
                 that test code will not work on previous release.  So we need
                 to get couchbase version to filter out those tests. """
-            self.cb_version = RestConnection(self.master).get_nodes_version()
+            self.cb_version = RestConnection(self.main).get_nodes_version()
         remote.disconnect()
 
     def tearDown(self):
@@ -666,8 +666,8 @@ class CommunityXDCRTests(CommunityXDCRBaseTest):
             self.log.info("This test only for vulcan and later")
             return
         self.log.info("Remove any existing replican")
-        RestConnection(self.src_master).remove_all_replications()
-        conn = RemoteMachineShellConnection(self.src_master)
+        RestConnection(self.src_main).remove_all_replications()
+        conn = RemoteMachineShellConnection(self.src_main)
 
         cmd = 'curl -X POST -u Administrator:password \
                               http://{0}:8091/controller/createReplication \
@@ -675,12 +675,12 @@ class CommunityXDCRTests(CommunityXDCRBaseTest):
                                  -d toBucket=default \
                                  -d toCluster=cluster1 \
                                  -d replicationType=continuous \
-                                 -d compressionType={1}'.format(self.src_master.ip,
+                                 -d compressionType={1}'.format(self.src_main.ip,
                                                             self.compression_mode)
         if self.cli_test:
             cmd = "{0}couchbase-cli setting-xdcr -c {1}:8091 -u Administrator \
                    -p password --enable-compression 1 ".format(self.bin_path,
-                                                                 self.src_master.ip)
+                                                                 self.src_main.ip)
         output, error = conn.execute_command(cmd)
 
         mesg = '"compressionType":"The value can be specified only in enterprise edition"'

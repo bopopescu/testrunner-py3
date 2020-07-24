@@ -43,7 +43,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                 rest.diag_eval(
                     "[ns_config:set({node, N, extra_rebalance_quirks}, [reset_replicas, trivial_moves]) || N <- ns_node_disco:nodes_wanted()].")
                 # rest.diag_eval(
-                #    "[ns_config:set({node, N, disable_rebalance_quirks}, [disable_old_master]) || N <- ns_node_disco:nodes_wanted()].")
+                #    "[ns_config:set({node, N, disable_rebalance_quirks}, [disable_old_main]) || N <- ns_node_disco:nodes_wanted()].")
 
         if self.flusher_batch_split_trigger:
             self.set_flusher_batch_split_trigger(flusher_batch_split_trigger=self.flusher_batch_split_trigger,
@@ -91,7 +91,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
 
         cmd_to_use = "cbc-pillowfight --json --num-items {0} -t 4 " \
                      "--spec couchbase://{1}:11210/default --rate-limit {2}" \
-                     .format(self.num_items, self.master.ip, self.rate_limit)
+                     .format(self.num_items, self.main.ip, self.rate_limit)
 
         # Select random node from the cluster to kill memcached
         target_server = self.servers[random.randint(0, self.nodes_init-1)]
@@ -210,7 +210,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
             load_thread = Thread(target=self.load,
                                  name="pillowfight_load",
                                  args=(
-                                     self.master, num_items, self.batch_size,
+                                     self.main, num_items, self.batch_size,
                                      self.doc_size, self.rate_limit,
                                      start_document, custom_cmd))
             return load_thread
@@ -219,7 +219,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                 num_items = self.num_items
             load_thread = Thread(target=self.load_buckets_with_high_ops,
                                  name="high_ops_load",
-                                 args=(self.master, self.buckets[0], num_items,
+                                 args=(self.main, self.buckets[0], num_items,
                                        self.batch_size,
                                        self.threads, start_document,
                                        self.instances, ttl))
@@ -253,7 +253,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         output = result.stdout.read()
         error = result.stderr.read()
         errors = []
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         VBucketAware = VBucketAwareMemcached(rest, bucket.name)
         _, _, _ = VBucketAware.request_map(rest, bucket.name)
         if error:
@@ -293,7 +293,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
             cluster.authenticate(auth)
             bkt = cluster.open_bucket(bucket.name)
 
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         VBucketAware = VBucketAwareMemcached(rest, bucket.name)
         _, _, _ = VBucketAware.request_map(rest, bucket.name)
         batch_start = 0
@@ -341,7 +341,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                                                            deleted, deleted_items, validate_expired, passes)
 
     def test_rebalance_in(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
 
         load_thread = self.load_docs()
@@ -369,7 +369,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.run_with_views:
             view_query_thread.join()
         num_items_to_validate = self.num_items * 3
-        errors = self.check_data(self.master, bucket, num_items=num_items_to_validate)
+        errors = self.check_data(self.main, bucket, num_items=num_items_to_validate)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -390,7 +390,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                                              bucket) // self.num_replicas)))
 
     def test_rebalance_in_with_update_workload(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
         if self.run_with_views:
@@ -405,7 +405,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
 
         update_thread = Thread(target=self.update_buckets_with_high_ops,
                                name="update_high_ops_load",
-                               args=(self.master, self.buckets[0], self.num_items,
+                               args=(self.main, self.buckets[0], self.num_items,
                                      self.num_items, self.batch_size,
                                      self.threads, 0, self.instances))
 
@@ -422,7 +422,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.run_with_views:
             view_query_thread.join()
         num_items_to_validate = self.num_items
-        errors = self.check_data(self.master, bucket, num_items_to_validate, 0, True, self.num_items * 2)
+        errors = self.check_data(self.main, bucket, num_items_to_validate, 0, True, self.num_items * 2)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -446,7 +446,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                                              bucket) // self.num_replicas)))
 
     def test_rebalance_in_with_delete_workload(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
         if self.run_with_views:
@@ -463,7 +463,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         delete_thread = Thread(target=self.delete_buckets_with_high_ops,
                                name="delete_high_ops_load",
                                args=(
-                                   self.master, self.buckets[0], self.num_items,
+                                   self.main, self.buckets[0], self.num_items,
                                    self.num_items, self.batch_size,
                                    self.threads, 0, self.instances))
 
@@ -480,7 +480,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.run_with_views:
             view_query_thread.join()
         num_items_to_validate = self.num_items
-        errors = self.check_data(self.master, bucket, num_items_to_validate, 0,
+        errors = self.check_data(self.main, bucket, num_items_to_validate, 0,
                                  deleted=True, deleted_items=num_items_to_validate, passes=0)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
@@ -506,9 +506,9 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                                              bucket) // self.num_replicas)))
 
     def test_rebalance_in_with_expiry(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
-        ClusterOperationHelper.flushctl_set(self.master, "exp_pager_stime", 10, bucket=bucket)
+        ClusterOperationHelper.flushctl_set(self.main, "exp_pager_stime", 10, bucket=bucket)
         load_thread = self.load_docs(ttl=10)
         if self.run_with_views:
             self.log.info('creating ddocs and views')
@@ -530,9 +530,9 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
             self.check_snap_start_corruption(servers_to_check=self.servers[:self.nodes_init + self.nodes_in])
         if self.run_with_views:
             view_query_thread.join()
-        ClusterOperationHelper.flushctl_set(self.master, "exp_pager_stime", 10, bucket=bucket)
+        ClusterOperationHelper.flushctl_set(self.main, "exp_pager_stime", 10, bucket=bucket)
         self.sleep(30)
-        errors = self.check_data(self.master, bucket, self.num_items, 0, False, 0, self.batch_size, ttl=10,
+        errors = self.check_data(self.main, bucket, self.num_items, 0, False, 0, self.batch_size, ttl=10,
                                  validate_expired=True, passes=0)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
@@ -560,7 +560,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                      range(self.nodes_out)]
 
         self.log.info("Servers Out: {0}".format(servs_out))
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
 
@@ -589,7 +589,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
             view_query_thread.join()
 
         num_items_to_validate = self.num_items * 3
-        errors = self.check_data(self.master, bucket, num_items_to_validate)
+        errors = self.check_data(self.main, bucket, num_items_to_validate)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -612,7 +612,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
     def test_rebalance_out_with_update_workload(self):
         servs_out = [self.servers[self.nodes_init - i - 1] for i in
                      range(self.nodes_out)]
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
         if self.run_with_views:
@@ -629,7 +629,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         update_thread = Thread(target=self.update_buckets_with_high_ops,
                                name="update_high_ops_load",
                                args=(
-                                   self.master, self.buckets[0], self.num_items,
+                                   self.main, self.buckets[0], self.num_items,
                                    self.num_items, self.batch_size,
                                    self.threads, 0, self.instances))
 
@@ -644,7 +644,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.run_with_views:
             view_query_thread.join()
         num_items_to_validate = self.num_items
-        errors = self.check_data(self.master, bucket, num_items_to_validate, 0,
+        errors = self.check_data(self.main, bucket, num_items_to_validate, 0,
                                  True, self.num_items * 2)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
@@ -672,7 +672,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
     def test_rebalance_out_with_delete_workload(self):
         servs_out = [self.servers[self.nodes_init - i - 1] for i in
                      range(self.nodes_out)]
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
         if self.run_with_views:
@@ -690,7 +690,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         delete_thread = Thread(target=self.delete_buckets_with_high_ops,
                                name="delete_high_ops_load",
                                args=(
-                                   self.master, self.buckets[0], self.num_items,
+                                   self.main, self.buckets[0], self.num_items,
                                    self.num_items, self.batch_size,
                                    self.threads, 0, self.instances))
 
@@ -705,7 +705,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.run_with_views:
             view_query_thread.join()
         num_items_to_validate = self.num_items
-        errors = self.check_data(self.master, bucket, num_items_to_validate, 0,
+        errors = self.check_data(self.main, bucket, num_items_to_validate, 0,
                                  deleted=True,
                                  deleted_items=num_items_to_validate, passes=0)
 
@@ -735,9 +735,9 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
     def test_rebalance_out_with_expiry(self):
         servs_out = [self.servers[self.nodes_init - i - 1] for i in
                      range(self.nodes_out)]
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
-        ClusterOperationHelper.flushctl_set(self.master, "exp_pager_stime", 10, bucket=bucket)
+        ClusterOperationHelper.flushctl_set(self.main, "exp_pager_stime", 10, bucket=bucket)
         load_thread = self.load_docs(ttl=10)
         if self.run_with_views:
             self.log.info('creating ddocs and views')
@@ -757,9 +757,9 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
             self.check_snap_start_corruption()
         if self.run_with_views:
             view_query_thread.join()
-        ClusterOperationHelper.flushctl_set(self.master, "exp_pager_stime", 10, bucket=bucket)
+        ClusterOperationHelper.flushctl_set(self.main, "exp_pager_stime", 10, bucket=bucket)
         self.sleep(30)
-        errors = self.check_data(self.master, bucket, self.num_items, 0, False, 0, self.batch_size, ttl=10,
+        errors = self.check_data(self.main, bucket, self.num_items, 0, False, 0, self.batch_size, ttl=10,
                                  validate_expired=True, passes=0)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
@@ -788,7 +788,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         servs_out = [self.servers[self.nodes_init - i - 1] for i in
                      range(self.nodes_out)]
         self.log.info("Servers Out: {0}".format(servs_out))
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
 
@@ -818,7 +818,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
             view_query_thread.join()
 
         num_items_to_validate = self.num_items * 3
-        errors = self.check_data(self.master, bucket, num_items_to_validate)
+        errors = self.check_data(self.main, bucket, num_items_to_validate)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -840,7 +840,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
     def test_rebalance_in_out_with_update_workload(self):
         servs_out = [self.servers[self.nodes_init - i - 1] for i in
                      range(self.nodes_out)]
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
         if self.run_with_views:
@@ -856,7 +856,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         update_thread = Thread(target=self.update_buckets_with_high_ops,
                                name="update_high_ops_load",
                                args=(
-                                   self.master, self.buckets[0], self.num_items,
+                                   self.main, self.buckets[0], self.num_items,
                                    self.num_items, self.batch_size,
                                    self.threads, 0, self.instances))
 
@@ -874,7 +874,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
             view_query_thread.join()
 
         num_items_to_validate = self.num_items
-        errors = self.check_data(self.master, bucket, num_items_to_validate, 0,
+        errors = self.check_data(self.main, bucket, num_items_to_validate, 0,
                                  True, self.num_items * 2)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
@@ -902,7 +902,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
     def test_rebalance_in_out_with_delete_workload(self):
         servs_out = [self.servers[self.nodes_init - i - 1] for i in
                      range(self.nodes_out)]
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
         if self.run_with_views:
@@ -919,7 +919,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         delete_thread = Thread(target=self.delete_buckets_with_high_ops,
                                name="delete_high_ops_load",
                                args=(
-                                   self.master, self.buckets[0], self.num_items,
+                                   self.main, self.buckets[0], self.num_items,
                                    self.num_items, self.batch_size,
                                    self.threads, 0, self.instances))
 
@@ -937,7 +937,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
             view_query_thread.join()
 
         num_items_to_validate = self.num_items
-        errors = self.check_data(self.master, bucket, num_items_to_validate, 0,
+        errors = self.check_data(self.main, bucket, num_items_to_validate, 0,
                                  deleted=True,
                                  deleted_items=num_items_to_validate, passes=0)
 
@@ -967,9 +967,9 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
     def test_rebalance_in_out_with_expiry(self):
         servs_out = [self.servers[self.nodes_init - i - 1] for i in
                      range(self.nodes_out)]
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
-        ClusterOperationHelper.flushctl_set(self.master, "exp_pager_stime", 10, bucket=bucket)
+        ClusterOperationHelper.flushctl_set(self.main, "exp_pager_stime", 10, bucket=bucket)
         load_thread = self.load_docs(ttl=10)
         if self.run_with_views:
             self.log.info('creating ddocs and views')
@@ -991,9 +991,9 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
             self.check_snap_start_corruption()
         if self.run_with_views:
             view_query_thread.join()
-        ClusterOperationHelper.flushctl_set(self.master, "exp_pager_stime", 10, bucket=bucket)
+        ClusterOperationHelper.flushctl_set(self.main, "exp_pager_stime", 10, bucket=bucket)
         self.sleep(30)
-        errors = self.check_data(self.master, bucket, self.num_items, 0, False, 0, self.batch_size, ttl=10,
+        errors = self.check_data(self.main, bucket, self.num_items, 0, False, 0, self.batch_size, ttl=10,
                                  validate_expired=True, passes=0)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
@@ -1019,7 +1019,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
 
     def test_graceful_failover_addback(self):
         node_out = self.servers[self.node_out]
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
         self.log.info('starting the load thread...')
@@ -1068,7 +1068,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         elif self.flusher_batch_split_trigger:
             self.check_snap_start_corruption(servers_to_check=self.servers[:self.nodes_init])
         num_items_to_validate = self.num_items * 4
-        errors = self.check_data(self.master, bucket, num_items_to_validate)
+        errors = self.check_data(self.main, bucket, num_items_to_validate)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -1091,7 +1091,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         servs_out = [self.servers[self.nodes_init - i - 1] for i in
                      range(self.nodes_out)]
         self.log.info("Servers Out: {0}".format(servs_out))
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
         self.log.info('starting the initial load...')
@@ -1114,7 +1114,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.flusher_batch_split_trigger:
             self.check_snap_start_corruption()
         num_items_to_validate = self.num_items * 3
-        errors = self.check_data(self.master, bucket, num_items_to_validate)
+        errors = self.check_data(self.main, bucket, num_items_to_validate)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -1147,7 +1147,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.flusher_batch_split_trigger:
             self.check_snap_start_corruption()
         num_items_to_validate = self.num_items * 5
-        errors = self.check_data(self.master, bucket, num_items_to_validate)
+        errors = self.check_data(self.main, bucket, num_items_to_validate)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -1181,7 +1181,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.flusher_batch_split_trigger:
             self.check_snap_start_corruption()
         num_items_to_validate = self.num_items * 7
-        errors = self.check_data(self.master, bucket, num_items_to_validate)
+        errors = self.check_data(self.main, bucket, num_items_to_validate)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -1201,7 +1201,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                                              bucket) // self.num_replicas)))
 
     def test_start_stop_rebalance_multiple_times(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         bucket = rest.get_buckets()[0]
         load_thread = self.load_docs()
 
@@ -1232,7 +1232,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.flusher_batch_split_trigger:
             self.check_snap_start_corruption()
         num_items_to_validate = self.num_items * 3
-        errors = self.check_data(self.master, bucket, num_items_to_validate)
+        errors = self.check_data(self.main, bucket, num_items_to_validate)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -1252,7 +1252,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                                              bucket) // self.num_replicas)))
 
     def test_rebalance_in_with_indexer_node(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init],
                                                  [self.servers[self.nodes_init]],
                                                  [], ["index", "n1ql"])
@@ -1283,7 +1283,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         if self.flusher_batch_split_trigger:
             self.check_snap_start_corruption()
         num_items_to_validate = self.num_items * 3
-        errors = self.check_data(self.master, bucket, num_items_to_validate)
+        errors = self.check_data(self.main, bucket, num_items_to_validate)
         if errors:
             self.log.info("Missing keys count : {0}".format(len(errors)))
         # for error in errors:
@@ -1318,7 +1318,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                                       n1ql_port=self.n1ql_port,
                                       full_docs_list=self.full_docs_list,
                                       log=self.log, input=self.input,
-                                      master=self.master,
+                                      main=self.main,
                                       use_rest=True
                                       )
 
@@ -1333,7 +1333,7 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
         query = {"connectionTimeout": 60000}
         for count in range(iterations):
             for i in range(self.view_num):
-                self.cluster.query_view(self.master, self.ddocs[0].name,
+                self.cluster.query_view(self.main, self.ddocs[0].name,
                                         self.default_view_name + str(i), query,
                                         expected_rows=None, bucket="default",
                                         retry_time=2)
@@ -1349,5 +1349,5 @@ class RebalanceHighOpsWithPillowFight(BaseTestCase):
                 ddoc = DesignDocument(self.default_view_name + str(i), views)
                 self.ddocs.append(ddoc)
                 for view in views:
-                    self.cluster.create_view(self.master, ddoc.name, view,
+                    self.cluster.create_view(self.main, ddoc.name, view,
                                              bucket=bucket)

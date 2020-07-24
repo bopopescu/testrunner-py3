@@ -103,7 +103,7 @@ class QueryANSINestUnnestTests(QueryTests):
         3. Create full_doc_list for both buckets
         :return:
         """
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         json_generator = JsonGenerator()
         self.standard_gens_load = json_generator.generate_doc_for_aggregate_pushdown(docs_per_day=self.docs_per_day,
                                                                                      start=0)

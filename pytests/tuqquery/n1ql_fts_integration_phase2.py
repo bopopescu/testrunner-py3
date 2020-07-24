@@ -875,8 +875,8 @@ class N1qlFTSIntegrationPhase2Test(QueryTests):
         password = self.users[user]['password']
         query = "select meta().id from `beer-sample` where search(`beer-sample`, \"state:California\")"
 
-        master_result = self.run_cbq_query(query=query, server=self.master, username=username, password=password)
-        self.assertEqual(master_result['status'], 'success', username+" query run failed on non-fts node")
+        main_result = self.run_cbq_query(query=query, server=self.main, username=username, password=password)
+        self.assertEqual(main_result['status'], 'success', username+" query run failed on non-fts node")
 
         self._remove_all_fts_indexes()
 
@@ -1164,7 +1164,7 @@ class N1qlFTSIntegrationPhase2Test(QueryTests):
 
     def test_expired_docs(self):
         self.cbcluster = CouchbaseCluster(name='cluster', nodes=self.servers, log=self.log)
-        bucket_params = self._create_bucket_params(server=self.master, size=self.bucket_size,
+        bucket_params = self._create_bucket_params(server=self.main, size=self.bucket_size,
                                                    replicas=self.num_replicas,
                                                    enable_replica_index=self.enable_replica_index,
                                                    eviction_policy=self.eviction_policy, bucket_priority=None,
@@ -1262,52 +1262,52 @@ class N1qlFTSIntegrationPhase2Test(QueryTests):
         rest.delete_fts_index(index_name)
 
     def _open_curl_access(self):
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
 
-        cmd = (self.curl_path + ' -u ' + self.master.rest_username + ':' + self.master.rest_password + ' http://' + self.master.ip + ':' + self.master.port + '/settings/querySettings/curlWhitelist -d \'{"all_access":true}\'')
+        cmd = (self.curl_path + ' -u ' + self.main.rest_username + ':' + self.main.rest_password + ' http://' + self.main.ip + ':' + self.main.port + '/settings/querySettings/curlWhitelist -d \'{"all_access":true}\'')
         shell.execute_command(cmd)
 
     def _create_all_users(self):
         admin_user = [{'id': 'admin_user', 'name': 'admin_user', 'password': 'password'}]
         rolelist = [{'id': 'admin_user', 'name': 'admin_user', 'roles': 'admin'}]
-        RbacBase().create_user_source(admin_user, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(admin_user, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['admin_user'] = {'username': 'admin_user', 'password': 'password'}
 
         all_buckets_data_reader_search_admin = [{'id': 'all_buckets_data_reader_search_admin', 'name': 'all_buckets_data_reader_search_admin', 'password': 'password'}]
         rolelist = [{'id': 'all_buckets_data_reader_search_admin', 'name': 'all_buckets_data_reader_search_admin', 'roles': 'query_select[*],fts_admin[*],query_external_access'}]
-        RbacBase().create_user_source(all_buckets_data_reader_search_admin, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(all_buckets_data_reader_search_admin, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['all_buckets_data_reader_search_admin'] = {'username': 'all_buckets_data_reader_search_admin', 'password': 'password'}
 
         all_buckets_data_reader_search_reader = [{'id': 'all_buckets_data_reader_search_reader', 'name': 'all_buckets_data_reader_search_reader', 'password': 'password'}]
         rolelist = [{'id': 'all_buckets_data_reader_search_reader', 'name': 'all_buckets_data_reader_search_reader', 'roles': 'query_select[*],fts_searcher[*],query_external_access'}]
-        RbacBase().create_user_source(all_buckets_data_reader_search_reader, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(all_buckets_data_reader_search_reader, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['all_buckets_data_reader_search_reader'] = {'username': 'all_buckets_data_reader_search_reader', 'password': 'password'}
 
         test_bucket_data_reader_search_admin = [{'id': 'test_bucket_data_reader_search_admin', 'name': 'test_bucket_data_reader_search_admin', 'password': 'password'}]
         rolelist = [{'id': 'test_bucket_data_reader_search_admin', 'name': 'test_bucket_data_reader_search_admin', 'roles': 'query_select[beer-sample],fts_admin[beer-sample],query_external_access'}]
-        RbacBase().create_user_source(test_bucket_data_reader_search_admin, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(test_bucket_data_reader_search_admin, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['test_bucket_data_reader_search_admin'] = {'username': 'test_bucket_data_reader_search_admin', 'password': 'password'}
 
         test_bucket_data_reader_null = [{'id': 'test_bucket_data_reader_null', 'name': 'test_bucket_data_reader_null', 'password': 'password'}]
         rolelist = [{'id': 'test_bucket_data_reader_null', 'name': 'test_bucket_data_reader_null', 'roles': 'query_select[beer-sample],query_external_access'}]
-        RbacBase().create_user_source(test_bucket_data_reader_null, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(test_bucket_data_reader_null, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['test_bucket_data_reader_null'] = {'username': 'test_bucket_data_reader_null', 'password': 'password'}
 
         test_bucket_data_reader_search_reader = [{'id': 'test_bucket_data_reader_search_reader', 'name': 'test_bucket_data_reader_search_reader', 'password': 'password'}]
         rolelist = [{'id': 'test_bucket_data_reader_search_reader', 'name': 'test_bucket_data_reader_search_reader', 'roles': 'query_select[beer-sample],fts_searcher[beer-sample],query_external_access'}]
-        RbacBase().create_user_source(test_bucket_data_reader_search_reader, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(test_bucket_data_reader_search_reader, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['test_bucket_data_reader_search_reader'] = {'username': 'test_bucket_data_reader_search_reader', 'password': 'password'}
 
         all_buckets_data_reader_null = [{'id': 'all_buckets_data_reader_null', 'name': 'all_buckets_data_reader_null', 'password': 'password'}]
         rolelist = [{'id': 'all_buckets_data_reader_null', 'name': 'all_buckets_data_reader_null', 'roles': 'query_select[*],query_external_access'}]
-        RbacBase().create_user_source(all_buckets_data_reader_null, 'builtin', self.master)
-        RbacBase().add_user_role(rolelist, RestConnection(self.master), 'builtin')
+        RbacBase().create_user_source(all_buckets_data_reader_null, 'builtin', self.main)
+        RbacBase().add_user_role(rolelist, RestConnection(self.main), 'builtin')
         self.users['all_buckets_data_reader_null'] = {'username': 'all_buckets_data_reader_null', 'password': 'password'}
 
 

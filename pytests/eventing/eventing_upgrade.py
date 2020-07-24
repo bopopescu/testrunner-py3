@@ -29,8 +29,8 @@ log = logging.getLogger()
 class EventingUpgrade(NewUpgradeBaseTest, BaseTestCase):
     def setUp(self):
         super(EventingUpgrade, self).setUp()
-        self.rest = RestConnection(self.master)
-        self.server = self.master
+        self.rest = RestConnection(self.main)
+        self.server = self.main
         self.queue = queue.Queue()
         self.src_bucket_name = self.input.param('src_bucket_name', 'src_bucket')
         self.eventing_log_level = self.input.param('eventing_log_level', 'INFO')
@@ -260,31 +260,31 @@ class EventingUpgrade(NewUpgradeBaseTest, BaseTestCase):
         log.info("Rebalance in all {0} nodes" \
                  .format(self.input.param("upgrade_version", "")))
         self.sleep(self.sleep_time)
-        status, content = ClusterOperationHelper.find_orchestrator(self.master)
+        status, content = ClusterOperationHelper.find_orchestrator(self.main)
         self.assertTrue(status, msg="Unable to find orchestrator: {0}:{1}". \
                         format(status, content))
         FIND_MASTER = False
         for new_server in servers_in:
             if content.find(new_server.ip) >= 0:
-                self._new_master(new_server)
+                self._new_main(new_server)
                 FIND_MASTER = True
-                self.log.info("%s node %s becomes the master" \
+                self.log.info("%s node %s becomes the main" \
                               % (self.input.param("upgrade_version", ""), new_server.ip))
                 break
         if self.input.param("initial_version", "")[:5] in COUCHBASE_VERSION_2 \
                 and not FIND_MASTER:
             raise Exception( \
-                "After rebalance in {0} nodes, {0} node doesn't become master" \
+                "After rebalance in {0} nodes, {0} node doesn't become main" \
                     .format(self.input.param("upgrade_version", "")))
         servers_out = self.servers[:self.nodes_init]
         log.info("Rebalanced out all old version nodes")
         self.cluster.rebalance(self.servers[:self.num_servers], [], servers_out)
-        self._new_master(self.servers[self.nodes_init])
+        self._new_main(self.servers[self.nodes_init])
 
     def online_upgrade_swap_rebalance(self, services=None):
         servers_in = self.servers[self.nodes_init:self.num_servers]
         self.sleep(self.sleep_time)
-        status, content = ClusterOperationHelper.find_orchestrator(self.master)
+        status, content = ClusterOperationHelper.find_orchestrator(self.main)
         self.assertTrue(status, msg="Unable to find orchestrator: {0}:{1}". \
                         format(status, content))
         i = 1
@@ -295,7 +295,7 @@ class EventingUpgrade(NewUpgradeBaseTest, BaseTestCase):
             self.cluster.rebalance(self.servers[:self.nodes_init], [server_in], [self.servers[i]],
                                    services=[service_in])
             i += 1
-        self._new_master(self.servers[self.nodes_init + 1])
+        self._new_main(self.servers[self.nodes_init + 1])
         self.cluster.rebalance(self.servers[self.nodes_init + 1:self.num_servers], [servers_in[0]], [self.servers[0]],
                                services=[services[0]])
 
@@ -305,32 +305,32 @@ class EventingUpgrade(NewUpgradeBaseTest, BaseTestCase):
         log.info("Rebalance in all {0} nodes" \
                  .format(self.input.param("upgrade_version", "")))
         self.sleep(self.sleep_time)
-        status, content = ClusterOperationHelper.find_orchestrator(self.master)
+        status, content = ClusterOperationHelper.find_orchestrator(self.main)
         self.assertTrue(status, msg="Unable to find orchestrator: {0}:{1}". \
                         format(status, content))
         FIND_MASTER = False
         for new_server in servers_in:
             if content.find(new_server.ip) >= 0:
-                self._new_master(new_server)
+                self._new_main(new_server)
                 FIND_MASTER = True
-                self.log.info("%s node %s becomes the master" \
+                self.log.info("%s node %s becomes the main" \
                               % (self.input.param("upgrade_version", ""), new_server.ip))
                 break
         if self.input.param("initial_version", "")[:5] in COUCHBASE_VERSION_2 \
                 and not FIND_MASTER:
             raise Exception( \
-                "After rebalance in {0} nodes, {0} node doesn't become master" \
+                "After rebalance in {0} nodes, {0} node doesn't become main" \
                     .format(self.input.param("upgrade_version", "")))
         servers_out = self.servers[:self.nodes_init]
-        self._new_master(self.servers[self.nodes_init])
+        self._new_main(self.servers[self.nodes_init])
         log.info("failover and rebalance nodes")
         self.cluster.failover(self.servers[:self.num_servers], failover_nodes=servers_out, graceful=False)
         self.cluster.rebalance(self.servers[:self.num_servers], [], servers_out)
         self.sleep(180)
 
-    def _new_master(self, server):
-        self.master = server
-        self.rest = RestConnection(self.master)
+    def _new_main(self, server):
+        self.main = server
+        self.rest = RestConnection(self.main)
         self.rest_helper = RestHelper(self.rest)
 
     def create_buckets(self):
@@ -342,7 +342,7 @@ class EventingUpgrade(NewUpgradeBaseTest, BaseTestCase):
                                                    replicas=self.num_replicas)
         self.cluster.create_standard_bucket(name=self.src_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                             bucket_params=bucket_params)
-        self.src_bucket = RestConnection(self.master).get_buckets()
+        self.src_bucket = RestConnection(self.main).get_buckets()
         self.sleep(60)
         self.cluster.create_standard_bucket(name=self.dst_bucket_name, port=STANDARD_BUCKET_PORT + 2,
                                             bucket_params=bucket_params)
@@ -358,7 +358,7 @@ class EventingUpgrade(NewUpgradeBaseTest, BaseTestCase):
         self.sleep(60)
         self.cluster.create_standard_bucket(name=self.source_bucket_mutation, port=STANDARD_BUCKET_PORT + 4,
                                             bucket_params=bucket_params)
-        self.buckets = RestConnection(self.master).get_buckets()
+        self.buckets = RestConnection(self.main).get_buckets()
 
     def validate_eventing(self, bucket_name, no_of_docs):
         count = 0

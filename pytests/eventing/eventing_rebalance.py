@@ -28,12 +28,12 @@ class EventingRebalance(EventingBaseTest):
                                                        replicas=self.replicas)
             self.cluster.create_standard_bucket(name=self.src_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
-            self.src_bucket = RestConnection(self.master).get_buckets()
+            self.src_bucket = RestConnection(self.main).get_buckets()
             self.cluster.create_standard_bucket(name=self.dst_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
             self.cluster.create_standard_bucket(name=self.metadata_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params_meta)
-            self.buckets = RestConnection(self.master).get_buckets()
+            self.buckets = RestConnection(self.main).get_buckets()
         self.gens_load = self.generate_docs(self.docs_per_day)
         self.expiry = 3
         handler_code = self.input.param('handler_code', 'bucket_op')
@@ -53,7 +53,7 @@ class EventingRebalance(EventingBaseTest):
                                           n1ql_port=self.n1ql_port,
                                           full_docs_list=self.full_docs_list,
                                           log=self.log, input=self.input,
-                                          master=self.master,
+                                          main=self.main,
                                           use_rest=True
                                           )
             self.n1ql_helper.create_primary_index(using_gsi=True, server=self.n1ql_node)
@@ -68,7 +68,7 @@ class EventingRebalance(EventingBaseTest):
                                           n1ql_port=self.n1ql_port,
                                           full_docs_list=self.full_docs_list,
                                           log=self.log, input=self.input,
-                                          master=self.master,
+                                          main=self.main,
                                           use_rest=True
                                           )
             self.n1ql_helper.create_primary_index(using_gsi=True, server=self.n1ql_node)
@@ -215,7 +215,7 @@ class EventingRebalance(EventingBaseTest):
         # Get all eventing nodes
         nodes_out_list = self.get_nodes_from_services_map(service_type="eventing", get_all_nodes=True)
         # Fail over all eventing nodes and rebalance them out
-        self.cluster.failover([self.master], failover_nodes=nodes_out_list, graceful=False)
+        self.cluster.failover([self.main], failover_nodes=nodes_out_list, graceful=False)
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init + 1], [], nodes_out_list)
         reached = RestHelper(self.rest).rebalance_reached(retry_count=120)
         self.assertTrue(reached, "rebalance failed, stuck or did not complete")
@@ -407,7 +407,7 @@ class EventingRebalance(EventingBaseTest):
         body = self.create_save_function_body(self.function_name, self.handler_code)
         self.deploy_function(body)
         # load some data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
@@ -447,7 +447,7 @@ class EventingRebalance(EventingBaseTest):
         body = self.create_save_function_body(self.function_name, self.handler_code)
         self.deploy_function(body)
         # load some data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
@@ -488,13 +488,13 @@ class EventingRebalance(EventingBaseTest):
         body = self.create_save_function_body(self.function_name, self.handler_code)
         self.deploy_function(body)
         # load some data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
         nodes_out_list = self.servers[self.server_out]
         # do a swap rebalance
-        self.rest.add_node(self.master.rest_username, self.master.rest_password,
+        self.rest.add_node(self.main.rest_username, self.main.rest_password,
                            self.servers[self.nodes_init].ip, self.servers[self.nodes_init].port,
                            services=[self.services_in])
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], [nodes_out_list])
@@ -527,7 +527,7 @@ class EventingRebalance(EventingBaseTest):
 
     def test_autofailover_with_eventing_rebalance(self):
         # enable auto-failover
-        status = RestConnection(self.master).update_autofailover_settings(True, 10)
+        status = RestConnection(self.main).update_autofailover_settings(True, 10)
         if not status:
             self.fail('failed to change autofailover_settings! See MB-7282')
         gen_load_del = copy.deepcopy(self.gens_load)
@@ -536,7 +536,7 @@ class EventingRebalance(EventingBaseTest):
         if self.pause_resume:
             self.pause_function(body)
         # load some data
-        self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                          self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         kv_node = self.get_nodes_from_services_map(service_type="kv", get_all_nodes=True)
         eventing_node = self.get_nodes_from_services_map(service_type="eventing", get_all_nodes=False)
@@ -556,7 +556,7 @@ class EventingRebalance(EventingBaseTest):
             self.sleep(120, "Wait for server to start")
         # Wait for eventing to catch up with all the delete mutations and verify results
         # This is required to ensure eventing works after rebalance goes through successfully
-        stats_src = RestConnection(self.master).get_bucket_stats(bucket=self.src_bucket_name)
+        stats_src = RestConnection(self.main).get_bucket_stats(bucket=self.src_bucket_name)
         if self.pause_resume:
             self.resume_function(body)
         try:
@@ -597,13 +597,13 @@ class EventingRebalance(EventingBaseTest):
         if self.pause_resume:
             self.pause_function(body)
         # load some data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         # fail over the kv node
         if failover_type == "hard":
-            fail_over_task = self.cluster.async_failover([self.master], failover_nodes=[kv_server], graceful=False)
+            fail_over_task = self.cluster.async_failover([self.main], failover_nodes=[kv_server], graceful=False)
         else:
-            fail_over_task = self.cluster.async_failover([self.master], failover_nodes=[kv_server], graceful=True)
+            fail_over_task = self.cluster.async_failover([self.main], failover_nodes=[kv_server], graceful=True)
         fail_over_task.result()
         self.sleep(120)
         # do a recovery and rebalance
@@ -620,7 +620,7 @@ class EventingRebalance(EventingBaseTest):
         if self.pause_resume:
             self.resume_function(body)
         try:
-            stats_src = RestConnection(self.master).get_bucket_stats(bucket=self.src_bucket_name)
+            stats_src = RestConnection(self.main).get_bucket_stats(bucket=self.src_bucket_name)
             if not self.is_sbm:
                 self.verify_eventing_results(self.function_name, stats_src["curr_items"], skip_stats_validation=True,
                                          timeout=240)
@@ -657,10 +657,10 @@ class EventingRebalance(EventingBaseTest):
         if self.pause_resume:
             self.pause_function(body)
         # load some data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         # fail over the kv node
-        fail_over_task = self.cluster.async_failover([self.master], failover_nodes=[eventing_server], graceful=False)
+        fail_over_task = self.cluster.async_failover([self.main], failover_nodes=[eventing_server], graceful=False)
         fail_over_task.result()
         self.sleep(120)
         # do a recovery and rebalance
@@ -679,7 +679,7 @@ class EventingRebalance(EventingBaseTest):
         try:
             # Wait for eventing to catch up with all the delete mutations and verify results
             # This is required to ensure eventing works after rebalance goes through successfully
-            stats_src = RestConnection(self.master).get_bucket_stats(bucket=self.src_bucket_name)
+            stats_src = RestConnection(self.main).get_bucket_stats(bucket=self.src_bucket_name)
             if not self.is_sbm:
                 self.verify_eventing_results(self.function_name, stats_src["curr_items"], skip_stats_validation=True,
                                          timeout=240)
@@ -714,14 +714,14 @@ class EventingRebalance(EventingBaseTest):
         body = self.create_save_function_body(self.function_name, self.handler_code)
         self.deploy_function(body)
         # load data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
         # rebalance out a eventing node when eventing is processing mutations
         nodes_out_ev = self.get_nodes_from_services_map(service_type="eventing", get_all_nodes=False)
         if enable_failover:
-            self.cluster.failover([self.master], failover_nodes=[nodes_out_ev])
+            self.cluster.failover([self.main], failover_nodes=[nodes_out_ev])
         for i in range(5):
             # start eventing node rebalance
             rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], [nodes_out_ev])
@@ -733,7 +733,7 @@ class EventingRebalance(EventingBaseTest):
             if not RestHelper(self.rest).is_cluster_rebalanced():
                 # stop the rebalance
                 log.info("Stop the rebalance")
-                stopped = RestConnection(self.master).stop_rebalance(wait_timeout=100)
+                stopped = RestConnection(self.main).stop_rebalance(wait_timeout=100)
                 self.assertTrue(stopped, msg="unable to stop rebalance")
                 # rebalance.result()
             else:
@@ -768,14 +768,14 @@ class EventingRebalance(EventingBaseTest):
         body = self.create_save_function_body(self.function_name, self.handler_code)
         self.deploy_function(body)
         # load data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
         # rebalance out a eventing node when eventing is processing mutations
         nodes_out_kv = self.servers[1]
         if enable_failover:
-            self.cluster.failover([self.master], failover_nodes=[nodes_out_kv])
+            self.cluster.failover([self.main], failover_nodes=[nodes_out_kv])
         for i in range(5):
             # start eventing node rebalance
             rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], [nodes_out_kv])
@@ -787,7 +787,7 @@ class EventingRebalance(EventingBaseTest):
             if not RestHelper(self.rest).is_cluster_rebalanced():
                 # stop the rebalance
                 log.info("Stop the rebalance")
-                stopped = RestConnection(self.master).stop_rebalance(wait_timeout=100)
+                stopped = RestConnection(self.main).stop_rebalance(wait_timeout=100)
                 self.assertTrue(stopped, msg="unable to stop rebalance")
                 # rebalance.result()
             else:
@@ -827,7 +827,7 @@ class EventingRebalance(EventingBaseTest):
                                               cpp_worker_thread_count=cpp_worker_thread_count)
         self.deploy_function(body)
         # load data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
@@ -847,7 +847,7 @@ class EventingRebalance(EventingBaseTest):
         else:
             self.verify_eventing_results(self.function_name, self.docs_per_day * 2016, skip_stats_validation=True)
         # delete json documents
-        task1 = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, gen_load_del,
+        task1 = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, gen_load_del,
                                                  self.buckets[0].kvs[1], 'delete', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
@@ -875,10 +875,10 @@ class EventingRebalance(EventingBaseTest):
         all_eventing_nodes = self.get_nodes_from_services_map(service_type="eventing", get_all_nodes=True)
         # add the previously removed nodes as part of swap rebalance
         for node in to_remove_nodes:
-            self.rest.add_node(self.master.rest_username, self.master.rest_password, node.ip, node.port,
+            self.rest.add_node(self.main.rest_username, self.main.rest_password, node.ip, node.port,
                                services=["eventing"])
         # load data
-        task2 = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, gen_load_create,
+        task2 = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, gen_load_create,
                                                  self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], all_eventing_nodes)
         reached = RestHelper(self.rest).rebalance_reached(retry_count=120)
@@ -906,7 +906,7 @@ class EventingRebalance(EventingBaseTest):
                                               cpp_worker_thread_count=cpp_worker_thread_count)
         self.deploy_function(body)
         # load data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
@@ -927,7 +927,7 @@ class EventingRebalance(EventingBaseTest):
         else:
             self.verify_eventing_results(self.function_name, self.docs_per_day * 2016, skip_stats_validation=True)
         # delete json documents
-        task1 = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, gen_load_del,
+        task1 = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, gen_load_del,
                                                  self.buckets[0].kvs[1], 'delete', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
@@ -948,10 +948,10 @@ class EventingRebalance(EventingBaseTest):
         all_kv_nodes = self.get_nodes_from_services_map(service_type="kv", get_all_nodes=True)
         # add the previously removed nodes as part of swap rebalance
         for node in to_add_nodes:
-            self.rest.add_node(self.master.rest_username, self.master.rest_password, node.ip, node.port,
+            self.rest.add_node(self.main.rest_username, self.main.rest_password, node.ip, node.port,
                                services=["kv"])
         # load data
-        task2 = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, gen_load_create,
+        task2 = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, gen_load_create,
                                                  self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         if self.pause_resume:
             self.pause_function(body)
@@ -960,7 +960,7 @@ class EventingRebalance(EventingBaseTest):
         self.assertTrue(reached, "rebalance failed, stuck or did not complete")
         rebalance.result()
         task2.result()
-        self.master = all_kv_nodes[0]
+        self.main = all_kv_nodes[0]
         if self.pause_resume:
             self.resume_function(body)
         # Wait for eventing to catch up with all the update mutations and verify results after rebalance
@@ -994,13 +994,13 @@ class EventingRebalance(EventingBaseTest):
         body1['depcfg']['buckets'].append({"alias": self.dst_bucket_name1, "bucket_name": self.dst_bucket_name1})
         self.deploy_function(body1)
         # do a swap rebalance
-        self.rest.add_node(self.master.rest_username, self.master.rest_password,
+        self.rest.add_node(self.main.rest_username, self.main.rest_password,
                            self.servers[self.nodes_init].ip, self.servers[self.nodes_init].port,
                            services=["eventing"])
         if self.pause_resume:
             self.pause_function(body1)
         # load some data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], [nodes_out_ev])
         reached = RestHelper(self.rest).rebalance_reached(retry_count=120)
@@ -1033,7 +1033,7 @@ class EventingRebalance(EventingBaseTest):
             self.pause_function(body)
         try:
             # load some data
-            task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+            task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                     self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
             # rebalance in a eventing node when eventing is processing mutations
             services_in = ["eventing"]
@@ -1073,7 +1073,7 @@ class EventingRebalance(EventingBaseTest):
             self.pause_function(body)
         try:
             # load some data
-            task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+            task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                     self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
             # rebalance in a eventing node when eventing is processing mutations
             services_in = ["eventing"]
@@ -1119,7 +1119,7 @@ class EventingRebalance(EventingBaseTest):
             self.pause_function(body)
         try:
             # load some data
-            task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+            task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                     self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
             # rebalance in a eventing node when eventing rebalance is going on
             services_in = ["eventing"]
@@ -1169,7 +1169,7 @@ class EventingRebalance(EventingBaseTest):
             self.pause_function(body)
         try:
             # load some data
-            task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+            task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                     self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
             # rebalance in a eventing node when eventing is processing mutations
             services_in = ["eventing"]
@@ -1262,18 +1262,18 @@ class EventingRebalance(EventingBaseTest):
             self.pause_function(body)
         try:
             # load some data
-            task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+            task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                     self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         except:
             pass
         # failover a node
-        fail_over_task = self.cluster.async_failover([self.master], failover_nodes=[server_failed_over],
+        fail_over_task = self.cluster.async_failover([self.main], failover_nodes=[server_failed_over],
                                                      graceful=False)
         fail_over_task.result()
         self.sleep(120)
         # do a swap rebalance
         server_out = self.servers[self.server_out]
-        self.rest.add_node(self.master.rest_username, self.master.rest_password,
+        self.rest.add_node(self.main.rest_username, self.main.rest_password,
                            self.servers[self.nodes_init].ip, self.servers[self.nodes_init].port,
                            services=[self.services_in])
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], [server_out])
@@ -1289,7 +1289,7 @@ class EventingRebalance(EventingBaseTest):
         if self.pause_resume:
             self.resume_function(body)
         try:
-            stats_src = RestConnection(self.master).get_bucket_stats(bucket=self.src_bucket_name)
+            stats_src = RestConnection(self.main).get_bucket_stats(bucket=self.src_bucket_name)
             # Wait for eventing to catch up with all the update mutations and verify results after rebalance
             if not self.is_sbm:
                 self.verify_eventing_results(self.function_name, stats_src["curr_items"], skip_stats_validation=True,
@@ -1409,7 +1409,7 @@ class EventingRebalance(EventingBaseTest):
                                       n1ql_port=self.n1ql_port,
                                       full_docs_list=self.full_docs_list,
                                       log=self.log, input=self.input,
-                                      master=self.master,
+                                      main=self.main,
                                       use_rest=True
                                       )
         self.n1ql_helper.create_primary_index(using_gsi=True, server=self.n1ql_node)
@@ -1422,11 +1422,11 @@ class EventingRebalance(EventingBaseTest):
             if self.pause_resume:
                 self.pause_function(body)
         # load some data
-        task = self.cluster.async_load_gen_docs(self.master, self.src_bucket_name, self.gens_load,
+        task = self.cluster.async_load_gen_docs(self.main, self.src_bucket_name, self.gens_load,
                                                 self.buckets[0].kvs[1], 'create', compression=self.sdk_compression)
         nodes_out_list = self.servers[self.server_out]
         # do a swap rebalance while multiple functions are deployed
-        self.rest.add_node(self.master.rest_username, self.master.rest_password,
+        self.rest.add_node(self.main.rest_username, self.main.rest_password,
                            self.servers[self.nodes_init].ip, self.servers[self.nodes_init].port,
                            services=[self.services_in])
         rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init], [], [nodes_out_list])

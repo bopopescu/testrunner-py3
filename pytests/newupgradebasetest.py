@@ -112,7 +112,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
             self.product = 'couchbase-server'
         if self.max_verify is None:
             self.max_verify = min(self.num_items, 100000)
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
         type = shell.extract_remote_info().distribution_type
         os_version = shell.extract_remote_info().distribution_version
         shell.disconnect()
@@ -162,7 +162,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
                 # cleanup only nodes that are in cluster
                 # not all servers have been installed
                 if self.rest is None:
-                    self._new_master(self.master)
+                    self._new_main(self.main)
                 nodes = self.rest.get_nodes()
                 temp = []
                 for server in self.servers:
@@ -216,7 +216,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
                 if not success:
                     sys.exit("some nodes were not install successfully!")
         if self.rest is None:
-            self._new_master(self.master)
+            self._new_main(self.main)
         if self.use_hostnames:
             for server in self.servers[:self.nodes_init]:
                 hostname = RemoteUtilHelper.use_hostname_for_server_settings(server)
@@ -241,7 +241,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
                                             self.maxParallelReplicaIndexers, self.port,
                                             services=set_services)
         if self.port and self.port != '8091':
-            self.rest = RestConnection(self.master)
+            self.rest = RestConnection(self.main)
             self.rest_helper = RestHelper(self.rest)
         if 5.0 <= float(self.initial_version[:3]):
             self.add_built_in_server_user()
@@ -277,7 +277,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
         if self.is_fts_in_pre_upgrade:
             self.create_fts_index_query_compare()
         else:
-            self._load_all_buckets(self.master, gen_load, "create", self.expire_time,
+            self._load_all_buckets(self.main, gen_load, "create", self.expire_time,
                                                              flag=self.item_flag)
         if not self.stop_persistence:
             self._wait_for_stats_all_buckets(servers)
@@ -402,9 +402,9 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
             upgrade_thread.start()
         return upgrade_threads
 
-    def _new_master(self, server):
-        self.master = server
-        self.rest = RestConnection(self.master)
+    def _new_main(self, server):
+        self.main = server
+        self.rest = RestConnection(self.main)
         self.rest_helper = RestHelper(self.rest)
 
     def verification(self, servers, check_items=True):
@@ -414,11 +414,11 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
                 new_hostname = node_info.hostname
                 self.assertEqual("%s:%s" % (server.hostname, server.port), new_hostname,
                                  "Hostname is incorrect for server %s. Settings are %s" % (server.ip, new_hostname))
-        if self.master.ip != self.rest.ip or \
-           self.master.ip == self.rest.ip and str(self.master.port) != str(self.rest.port):
+        if self.main.ip != self.rest.ip or \
+           self.main.ip == self.rest.ip and str(self.main.port) != str(self.rest.port):
             if self.port:
-                self.master.port = self.port
-            self.rest = RestConnection(self.master)
+                self.main.port = self.port
+            self.rest = RestConnection(self.main)
             self.rest_helper = RestHelper(self.rest)
         if self.port and self.port != '8091':
             settings = self.rest.get_cluster_settings()
@@ -509,19 +509,19 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
                     self.perform_verify_queries(len(ddoc.views), prefix, ddoc.name, query, bucket=bucket)
 
     def failover(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         nodes = rest.node_statuses()
         nodes = [node for node in nodes
-                if node.ip != self.master.ip or str(node.port) != self.master.port]
+                if node.ip != self.main.ip or str(node.port) != self.main.port]
         self.failover_node = nodes[0]
         rest.fail_over(self.failover_node.id)
 
     def add_back_failover(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         rest.add_back_node(self.failover_node.id)
 
     def create_ddocs_and_views(self, server=None):
-        server_in_cluster = self.master
+        server_in_cluster = self.main
         if server is not None:
             self.buckets = RestConnection(server).get_buckets()
             server_in_cluster = server
@@ -549,17 +549,17 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
         for bucket in self.buckets:
             if bucket.type == 'memcached':
                 continue
-            ready = BucketOperationHelper.wait_for_memcached(self.master,
+            ready = BucketOperationHelper.wait_for_memcached(self.main,
                                                           bucket.name)
             self.assertTrue(ready, "wait_for_memcached failed")
-            client = VBucketAwareMemcached(RestConnection(self.master), bucket)
+            client = VBucketAwareMemcached(RestConnection(self.main), bucket)
             valid_keys, deleted_keys = bucket.kvs[1].key_set()
             for valid_key in valid_keys:
                 try:
                     _, flags, exp, seqno, cas = client.memcached(valid_key).getMeta(valid_key)
                 except MemcachedError as e:
                     print(e)
-                    client.reset(RestConnection(self.master))
+                    client.reset(RestConnection(self.main))
                     _, flags, exp, seqno, cas = client.memcached(valid_key).getMeta(valid_key)
                 self.assertTrue((comparator == '==' and seqno == seqno_expected) or
                                 (comparator == '>=' and seqno >= seqno_expected),
@@ -623,12 +623,12 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
            (self.input.param('upgrade_version', '')[:5] in COUCHBASE_VERSION_3 or \
             self.input.param('upgrade_version', '')[:5] in SHERLOCK_VERSION):
             if int(self.initial_vbuckets) >= 256:
-                if self.master.ip != self.rest.ip or \
-                   self.master.ip == self.rest.ip and \
-                   str(self.master.port) != str(self.rest.port):
+                if self.main.ip != self.rest.ip or \
+                   self.main.ip == self.rest.ip and \
+                   str(self.main.port) != str(self.rest.port):
                     if self.port:
-                        self.master.port = self.port
-                    self.rest = RestConnection(self.master)
+                        self.main.port = self.port
+                    self.rest = RestConnection(self.main)
                     self.rest_helper = RestHelper(self.rest)
                 if self.rest._rebalance_progress_status() == 'running':
                     self.log.info("Start monitoring DCP upgrade from {0} to {1}"\
@@ -647,8 +647,8 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
             else:
                 self.fail("Need vbuckets setting >= 256 for upgrade from 2.x.x to 3+")
         else:
-            if self.master.ip != self.rest.ip:
-                self.rest = RestConnection(self.master)
+            if self.main.ip != self.rest.ip:
+                self.rest = RestConnection(self.main)
                 self.rest_helper = RestHelper(self.rest)
             self.log.info("No need to do DCP rebalance upgrade")
 
@@ -672,7 +672,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
 
     def pre_upgrade(self, servers):
         if self.rest is None:
-            self._new_master(self.master)
+            self._new_main(self.main)
         self.ddocs_num = 0
         self.create_ddocs_and_views()
         verify_data = False
@@ -714,7 +714,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
             "create_ephemeral_buckets", False)
         if not create_ephemeral_buckets:
             return
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         versions = rest.get_nodes_versions()
         for version in versions:
             if "5" > version:
@@ -723,7 +723,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
                               "bucket for the cluster.")
                 return
         num_ephemeral_bucket = self.input.param("num_ephemeral_bucket", 1)
-        server = self.master
+        server = self.main
         server_id = RestConnection(server).get_nodes_self().id
         ram_size = RestConnection(server).get_nodes_self().memoryQuota
         bucket_size = self._get_bucket_size(ram_size, self.bucket_size +
@@ -757,7 +757,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
             bucket = Bucket(name=name, authType=None, saslPassword=None,
                             num_replicas=self.num_replicas,
                             bucket_size=self.bucket_size,
-                            port=port, master_id=server_id,
+                            port=port, main_id=server_id,
                             eviction_policy='noEviction', lww=self.lww)
             self.buckets.append(bucket)
             ephemeral_buckets.append(bucket)
@@ -772,7 +772,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
         load_gen = BlobGenerator('upgrade', 'upgrade-', self.value_size,
                                  end=self.num_items)
         for bucket in ephemeral_buckets:
-            self._load_bucket(bucket, self.master, load_gen, "create",
+            self._load_bucket(bucket, self.main, load_gen, "create",
                               self.expire_time)
 
     def _return_maps(self):
@@ -839,12 +839,12 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
         except Exception as ex:
             self.log.info(ex)
 
-    def get_nodes_in_cluster_after_upgrade(self, master_node=None):
+    def get_nodes_in_cluster_after_upgrade(self, main_node=None):
         rest = None
-        if master_node == None:
-            rest = RestConnection(self.master)
+        if main_node == None:
+            rest = RestConnection(self.main)
         else:
-            rest = RestConnection(master_node)
+            rest = RestConnection(main_node)
         nodes = rest.node_statuses()
         server_set = []
         for node in nodes:
@@ -857,23 +857,23 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
     def create_eventing_services(self):
         """ Only work after cluster upgrade to 5.5.0 completely """
         try:
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             cb_version = rest.get_nodes_version()
             if 5.5 > float(cb_version[:3]):
                 self.log.info("This eventing test is only for cb version 5.5 and later.")
                 return
 
-            bucket_params = self._create_bucket_params(server=self.master, size=128,
+            bucket_params = self._create_bucket_params(server=self.main, size=128,
                                                        replicas=self.num_replicas)
             self.cluster.create_standard_bucket(name=self.src_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
-            self.buckets = RestConnection(self.master).get_buckets()
-            self.src_bucket = RestConnection(self.master).get_buckets()
+            self.buckets = RestConnection(self.main).get_buckets()
+            self.src_bucket = RestConnection(self.main).get_buckets()
             self.cluster.create_standard_bucket(name=self.dst_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
             self.cluster.create_standard_bucket(name=self.metadata_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
-            self.buckets = RestConnection(self.master).get_buckets()
+            self.buckets = RestConnection(self.main).get_buckets()
             self.gens_load = self.generate_docs(self.docs_per_day)
             self.expiry = 3
 
@@ -1018,7 +1018,7 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
                 self.sleep(20)
                 num_actual = 0
                 if not servers:
-                    num_actual = self.get_item_count(self.master, bucketName)
+                    num_actual = self.get_item_count(self.main, bucketName)
                 else:
                     bucket_maps = RestConnection(servers[0]).get_buckets_itemCount()
                     num_actual = bucket_maps[bucketName]
@@ -1187,4 +1187,4 @@ class NewUpgradeBaseTest(QueryHelperTests, EventingBaseTest, FTSBaseTest):
                 use_rest = True, max_verify = self.max_verify,
                 buckets = self.buckets, item_flag = None,
                 n1ql_port = self.n1ql_server.n1ql_port, full_docs_list = [],
-                log = self.log, input = self.input, master = self.master)
+                log = self.log, input = self.input, main = self.main)

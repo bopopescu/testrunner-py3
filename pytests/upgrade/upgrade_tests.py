@@ -90,7 +90,7 @@ class UpgradeTests(NewUpgradeBaseTest):
                 initial_services = initial_services_setting
             self.initialize_nodes([self.servers[:self.nodes_init][0]],
                                   services=initial_services)
-        RestConnection(self.master).set_indexer_storage_mode()
+        RestConnection(self.main).set_indexer_storage_mode()
         self._log_start(self)
         if len(self.servers[:self.nodes_init]) > 1:
             if initial_services_setting is None:
@@ -122,7 +122,7 @@ class UpgradeTests(NewUpgradeBaseTest):
             self.rebalanceIndexWaitingDisabled,
             self.rebalanceIndexPausingDisabled, self.maxParallelIndexers,
             self.maxParallelReplicaIndexers, self.port)
-        self.add_built_in_server_user(node=self.master)
+        self.add_built_in_server_user(node=self.main)
         self.bucket_size = self._get_bucket_size(self.quota, self.total_buckets)
         self.create_buckets()
         self.n1ql_server = None
@@ -252,17 +252,17 @@ class UpgradeTests(NewUpgradeBaseTest):
             self.log.info("any events for which we need to cleanup")
             self.cleanup_events()
 
-    def _record_vbuckets(self, master, servers):
+    def _record_vbuckets(self, main, servers):
         bucket_map = dict()
         for bucket in self.buckets:
             self.log.info("Record vbucket for the bucket {0}"
                           .format(bucket.name))
-            bucket_map[bucket.name] = RestHelper(RestConnection(master))\
+            bucket_map[bucket.name] = RestHelper(RestConnection(main))\
                 ._get_vbuckets(servers, bucket_name=bucket.name)
         return bucket_map
 
-    def _find_master(self):
-        self.master = list(self.in_servers_pool.values())[0]
+    def _find_main(self):
+        self.main = list(self.in_servers_pool.values())[0]
 
     def _verify_data_active_replica(self):
         """ set data_analysis True by default """
@@ -391,13 +391,13 @@ class UpgradeTests(NewUpgradeBaseTest):
             self.log.info("VVVVVV failover a node ")
             print("failover node   ", self.nodes_out_list)
             nodes = self.get_nodes_in_cluster_after_upgrade()
-            failover_task = self.cluster.async_failover([self.master],
+            failover_task = self.cluster.async_failover([self.main],
                         failover_nodes = self.nodes_out_list, graceful=self.graceful)
             failover_task.result()
             if self.graceful:
                 """ Check if rebalance is still running """
                 msg = "graceful failover failed for nodes"
-                self.assertTrue(RestConnection(self.master).monitorRebalance(\
+                self.assertTrue(RestConnection(self.main).monitorRebalance(\
                                                      stop_if_loop=True), msg=msg)
                 rebalance = self.cluster.async_rebalance(self.servers[:self.nodes_init],
                                        [], self.nodes_out_list)
@@ -405,7 +405,7 @@ class UpgradeTests(NewUpgradeBaseTest):
                 failover_node = True
             else:
                 msg = "Failed to failover a node"
-                self.assertTrue(RestConnection(self.master).monitorRebalance(\
+                self.assertTrue(RestConnection(self.main).monitorRebalance(\
                                                      stop_if_loop=True), msg=msg)
                 rebalance = self.cluster.async_rebalance(nodes, [],
                                                     self.nodes_out_list)
@@ -422,7 +422,7 @@ class UpgradeTests(NewUpgradeBaseTest):
         try:
             self.log.info("autofailover")
             autofailover_timeout = 30
-            status = RestConnection(self.master).update_autofailover_settings(True, autofailover_timeout)
+            status = RestConnection(self.main).update_autofailover_settings(True, autofailover_timeout)
             self.assertTrue(status, 'failed to change autofailover_settings!')
             servr_out = self.nodes_out_list
             remote = RemoteMachineShellConnection(self.nodes_out_list[0])
@@ -459,7 +459,7 @@ class UpgradeTests(NewUpgradeBaseTest):
             self.log.info("couchbase_bucket_compaction")
             compact_tasks = []
             for bucket in self.buckets:
-                compact_tasks.append(self.cluster.async_compact_bucket(self.master, bucket))
+                compact_tasks.append(self.cluster.async_compact_bucket(self.main, bucket))
         except Exception as ex:
             self.log.info(ex)
             raise
@@ -496,7 +496,7 @@ class UpgradeTests(NewUpgradeBaseTest):
             self.rest.create_bucket(bucket=bucket,
                 ramQuotaMB=512, authType='sasl', timeSynchronization=self.time_synchronization)
             try:
-                ready = BucketOperationHelper.wait_for_memcached(self.master,
+                ready = BucketOperationHelper.wait_for_memcached(self.main,
                     bucket)
                 self.assertTrue(ready, '', msg = '[ERROR] Expect bucket creation to not work.')
             finally:
@@ -507,7 +507,7 @@ class UpgradeTests(NewUpgradeBaseTest):
         bucket_flushed = False
         try:
             self.log.info("bucket_flush ops")
-            self.rest =RestConnection(self.master)
+            self.rest =RestConnection(self.main)
             for bucket in self.buckets:
                 self.rest.flush_bucket(bucket.name)
             bucket_flushed = True
@@ -522,7 +522,7 @@ class UpgradeTests(NewUpgradeBaseTest):
         bucket_deleted = False
         try:
             self.log.info("delete_buckets")
-            self.rest = RestConnection(self.master)
+            self.rest = RestConnection(self.main)
             for bucket in self.buckets:
                 self.log.info("delete bucket {0}".format(bucket.name))
                 self.rest.delete_bucket(bucket.name)
@@ -544,7 +544,7 @@ class UpgradeTests(NewUpgradeBaseTest):
                 self.sasl_buckets = 1
                 self.sasl_bucket_name = self.sasl_bucket_name + "_" \
                                             + str(self.total_buckets)
-            self.rest = RestConnection(self.master)
+            self.rest = RestConnection(self.main)
             self._bucket_creation()
             self.sleep(5, "sleep after create bucket")
             self.total_buckets +=1
@@ -558,7 +558,7 @@ class UpgradeTests(NewUpgradeBaseTest):
 
     def change_bucket_properties(self):
         try:
-            self.rest = RestConnection(self.master)
+            self.rest = RestConnection(self.main)
             #Change Bucket Properties
             for bucket in self.buckets:
                 self.rest.change_bucket_props(bucket, ramQuotaMB=None,\
@@ -781,23 +781,23 @@ class UpgradeTests(NewUpgradeBaseTest):
     def create_eventing_services(self, queue=None):
         """ Only work after cluster upgrade to 5.5.0 completely """
         try:
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             cb_version = rest.get_nodes_version()
             if 5.5 > float(cb_version[:3]):
                 self.log.info("This eventing test is only for cb version 5.5 and later.")
                 return
 
-            bucket_params = self._create_bucket_params(server=self.master, size=128,
+            bucket_params = self._create_bucket_params(server=self.main, size=128,
                                                        replicas=self.num_replicas)
             self.cluster.create_standard_bucket(name=self.src_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
-            self.buckets = RestConnection(self.master).get_buckets()
-            self.src_bucket = RestConnection(self.master).get_buckets()
+            self.buckets = RestConnection(self.main).get_buckets()
+            self.src_bucket = RestConnection(self.main).get_buckets()
             self.cluster.create_standard_bucket(name=self.dst_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
             self.cluster.create_standard_bucket(name=self.metadata_bucket_name, port=STANDARD_BUCKET_PORT + 1,
                                                 bucket_params=bucket_params)
-            self.buckets = RestConnection(self.master).get_buckets()
+            self.buckets = RestConnection(self.main).get_buckets()
             self.gens_load = self.generate_docs(self.docs_per_day)
             self.expiry = 3
 
@@ -833,7 +833,7 @@ class UpgradeTests(NewUpgradeBaseTest):
         """
         try:
             self.validate_error = False
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             cb_version = rest.get_nodes_version()
             if 5.5 > float(cb_version[:3]):
                 self.log.info("This analytic test is only for cb version 5.5 and later.")
@@ -917,7 +917,7 @@ class UpgradeTests(NewUpgradeBaseTest):
             servicesNodeOut = ",".join(servicesNodeOut[list(servers_out.keys())[0]] )
             self._install(list(servers_in.values()))
             self.sleep(10, "Wait for ns server is ready")
-            old_vbucket_map = self._record_vbuckets(self.master, list(servers.values()))
+            old_vbucket_map = self._record_vbuckets(self.main, list(servers.values()))
             try:
                 if self.upgrade_services_in == "same":
                     self.cluster.rebalance(list(servers.values()),
@@ -945,9 +945,9 @@ class UpgradeTests(NewUpgradeBaseTest):
             self.in_servers_pool = new_servers
             servers = new_servers
             self.servers = list(servers.values())
-            self.master = self.servers[0]
+            self.main = self.servers[0]
             if self.verify_vbucket_info:
-                new_vbucket_map = self._record_vbuckets(self.master, self.servers)
+                new_vbucket_map = self._record_vbuckets(self.main, self.servers)
                 self._verify_vbuckets(old_vbucket_map, new_vbucket_map)
             # in the middle of online upgrade events
             if self.in_between_events:
@@ -970,7 +970,7 @@ class UpgradeTests(NewUpgradeBaseTest):
                 self.cluster.rebalance(self.servers, [server], [])
                 self.log.info("Rebalanced in upgraded nodes")
                 self.sleep(self.sleep_time)
-            self._new_master(self.servers[1])
+            self._new_main(self.servers[1])
             self.cluster.rebalance(self.servers, [], [self.servers[0]])
             self.log.info("Rebalanced out all old version nodes")
         except Exception as ex:
@@ -985,10 +985,10 @@ class UpgradeTests(NewUpgradeBaseTest):
 
     def failover_add_back(self):
         try:
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             recoveryType = self.input.param("recoveryType", "full")
             servr_out = self.nodes_out_list
-            failover_task =self.cluster.async_failover([self.master],
+            failover_task =self.cluster.async_failover([self.main],
                     failover_nodes = servr_out, graceful=self.graceful)
             failover_task.result()
             nodes_all = rest.node_statuses()
@@ -1014,7 +1014,7 @@ class UpgradeTests(NewUpgradeBaseTest):
     def kv_ops_initialize(self, queue=None):
         try:
             self.log.info("kv_ops_initialize")
-            self._load_all_buckets(self.master, self.gen_initial_create,
+            self._load_all_buckets(self.main, self.gen_initial_create,
                                    "create", self.expire_time,
                                    flag=self.item_flag)
             self.log.info("done kv_ops_initialize")
@@ -1029,13 +1029,13 @@ class UpgradeTests(NewUpgradeBaseTest):
     def kv_after_ops_create(self, queue=None):
         try:
             self.log.info("kv_after_ops_create")
-            self._load_all_buckets(self.master, self.after_gen_create, "create",\
+            self._load_all_buckets(self.main, self.after_gen_create, "create",\
                                            self.expire_time, flag=self.item_flag)
             for bucket in self.buckets:
                 self.log.info(" record vbucket for the bucket {0}"\
                                               .format(bucket.name))
                 curr_items = \
-                    RestConnection(self.master).get_active_key_count(bucket.name)
+                    RestConnection(self.main).get_active_key_count(bucket.name)
                 self.log.info("{0} curr_items in bucket {1} "\
                               .format(curr_items, bucket.name))
         except Exception as ex:
@@ -1048,7 +1048,7 @@ class UpgradeTests(NewUpgradeBaseTest):
     def kv_after_ops_update(self):
         try:
             self.log.info("kv_after_ops_update")
-            self._load_all_buckets(self.master, self.after_gen_update, "update",
+            self._load_all_buckets(self.main, self.after_gen_update, "update",
                                           self.expire_time, flag=self.item_flag)
         except Exception as ex:
             self.log.info(ex)
@@ -1057,7 +1057,7 @@ class UpgradeTests(NewUpgradeBaseTest):
     def kv_after_ops_delete(self):
         try:
             self.log.info("kv_after_ops_delete")
-            self._load_all_buckets(self.master, self.after_gen_delete,
+            self._load_all_buckets(self.main, self.after_gen_delete,
                                    "delete", self.expire_time,
                                    flag=self.item_flag)
         except Exception as ex:
@@ -1080,7 +1080,7 @@ class UpgradeTests(NewUpgradeBaseTest):
     def kv_ops_create(self):
         try:
             self.log.info("kv_ops_create")
-            self._load_all_buckets(self.master, self.gen_create, "create",
+            self._load_all_buckets(self.main, self.gen_create, "create",
                                    self.expire_time, flag=self.item_flag)
         except Exception as ex:
             self.log.info(ex)
@@ -1089,7 +1089,7 @@ class UpgradeTests(NewUpgradeBaseTest):
     def kv_ops_update(self):
         try:
             self.log.info("kv_ops_update")
-            self._load_all_buckets(self.master, self.gen_update, "update",
+            self._load_all_buckets(self.main, self.gen_update, "update",
                                    self.expire_time, flag=self.item_flag)
         except Exception as ex:
             self.log.info(ex)
@@ -1098,7 +1098,7 @@ class UpgradeTests(NewUpgradeBaseTest):
     def kv_ops_delete(self):
         try:
             self.log.info("kv_ops_delete")
-            self._load_all_buckets(self.master, self.gen_delete, "delete",
+            self._load_all_buckets(self.main, self.gen_delete, "delete",
                                    self.expire_time, flag=self.item_flag)
         except Exception as ex:
             self.log.info(ex)
@@ -1194,7 +1194,7 @@ class UpgradeTests(NewUpgradeBaseTest):
                 use_rest=True, max_verify=self.max_verify,
                 buckets=self.buckets, item_flag=None,
                 n1ql_port=self.n1ql_server.n1ql_port, full_docs_list=[],
-                log=self.log, input=self.input, master=self.master)
+                log=self.log, input=self.input, main=self.main)
 
     def _get_free_nodes(self):
         self.log.info("Get free nodes in pool not in cluster yet")
@@ -1212,11 +1212,11 @@ class UpgradeTests(NewUpgradeBaseTest):
                           .format(free_nodes))
         return free_nodes
 
-    def get_nodes_in_cluster_after_upgrade(self, master_node=None):
-        if master_node is None:
-            rest = RestConnection(self.master)
+    def get_nodes_in_cluster_after_upgrade(self, main_node=None):
+        if main_node is None:
+            rest = RestConnection(self.main)
         else:
-            rest = RestConnection(master_node)
+            rest = RestConnection(main_node)
         nodes = rest.node_statuses()
         server_set = []
         for node in nodes:

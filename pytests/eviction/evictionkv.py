@@ -33,21 +33,21 @@ class EvictionKV(EvictionBase):
         time.sleep(self.expires + 30)
         self.run_expiry_pager(60 * 60 * 24)  # effectively disable it by setting it far off in the future
 
-        compacted = self.cluster.compact_bucket(self.master, 'default')
+        compacted = self.cluster.compact_bucket(self.main, 'default')
         if self.bucket_type == 'ephemeral':
             self.assertFalse(compacted, msg="able compact_bucket")
             return
         else:
             self.assertTrue(compacted, msg="unable compact_bucket")
 
-        self.cluster.cancel_bucket_compaction(self.master, 'default')
+        self.cluster.cancel_bucket_compaction(self.main, 'default')
 
         # start compaction again
         time.sleep(5)
-        compacted = self.cluster.compact_bucket(self.master, 'default')
+        compacted = self.cluster.compact_bucket(self.main, 'default')
         self.assertTrue(compacted, msg="unable compact_bucket")
 
-        self.cluster.wait_for_stats([self.master],
+        self.cluster.wait_for_stats([self.main],
                                     "default", "",
                                     "curr_items", "==", 0, timeout=30)
 
@@ -60,7 +60,7 @@ class EvictionKV(EvictionBase):
         time.sleep(self.expires + 30)  # 30 seconds grace period
 
         # run the compactor which should expire the keys
-        compacted = self.cluster.compact_bucket(self.master, 'default')
+        compacted = self.cluster.compact_bucket(self.main, 'default')
 
         self.verify_all_nodes()
 
@@ -76,8 +76,8 @@ class EvictionKV(EvictionBase):
     """
 
     def test_steady_state_eviction(self):
-        # serverInfo = self.master
-        client = MemcachedClientHelper.direct_client(self.master, 'default')
+        # serverInfo = self.main
+        client = MemcachedClientHelper.direct_client(self.main, 'default')
 
         expiry_time = self.input.param("expiry_time", 30)
         keys_expired_per_interval = self.input.param("keys_expired_per_interval", 100)
@@ -114,14 +114,14 @@ class EvictionKV(EvictionBase):
             time.sleep(5)
             self.log.info("inserted {0} keys with expiry set to {1}".format(len(keys), expiry_time * float_creation_chunks))
 
-            compacted = self.cluster.compact_bucket(self.master, 'default')
+            compacted = self.cluster.compact_bucket(self.main, 'default')
             # have the compactor do the expiry
             if self.bucket_type == 'ephemeral':
                 self.assertFalse(compacted, msg="able compact_bucket")
                 return
             else:
                 self.assertTrue(compacted, msg="unable compact_bucket")
-            self.cluster.wait_for_stats([self.master], "default", "", "curr_items", "==", key_float, timeout=30)
+            self.cluster.wait_for_stats([self.main], "default", "", "curr_items", "==", key_float, timeout=30)
             exp_time = expiry_time - (time.time() - key_set_time)
             self.sleep(exp_time)
 
@@ -136,8 +136,8 @@ class EvictionKV(EvictionBase):
         self.run_expiry_pager()
         print("sleep 40 seconds and verify all items expired")
         time.sleep(40)
-        self._verify_all_buckets(self.master)
-        self.cluster.wait_for_stats([self.master],
+        self._verify_all_buckets(self.main)
+        self.cluster.wait_for_stats([self.main],
                                     "default", "",
                                     "curr_items", "==", 0, timeout=60)
 
@@ -170,17 +170,17 @@ class EvictionKV(EvictionBase):
             ttl -= 10
 
         # compact to purge expiring docs
-        compacted = self.cluster.compact_bucket(self.master, 'default')
+        compacted = self.cluster.compact_bucket(self.main, 'default')
         self.assertTrue(compacted, msg="unable compact_bucket")
 
-        iseq = self.cluster.wait_for_stats([self.master],
+        iseq = self.cluster.wait_for_stats([self.main],
                                            "default", "",
                                            "curr_items", "==", num_ejected, timeout=120)
         self.assertTrue(iseq, msg="curr_items != {0}".format(num_ejected))
 
         # delete remaining non expiring docs
         self.ops_on_ejected_set("delete", 0, num_ejected)
-        iseq = self.cluster.wait_for_stats([self.master],
+        iseq = self.cluster.wait_for_stats([self.main],
                                            "default", "",
                                            "curr_items", "==", 0, timeout=30)
         self.assertTrue(iseq, msg="curr_items != {0}".format(0))
@@ -211,7 +211,7 @@ class EvictionKV(EvictionBase):
         self.verify_missing_keys("ejected", num_ejected_items)
 
 
-        self.cluster.wait_for_stats([self.master],
+        self.cluster.wait_for_stats([self.main],
                                     "default", "",
                                     "curr_items", "==", 0, timeout=300)
 
@@ -221,7 +221,7 @@ class EvictionKV(EvictionBase):
         the ephemeral stats for it. We then again load bucket by 50% of 
         exiting capacity and again validate stats.
         '''
-        shell = RemoteMachineShellConnection(self.master)
+        shell = RemoteMachineShellConnection(self.main)
         rest = RestConnection(self.servers[0])
 
         generate_load = BlobGenerator(EphemeralBucketsOOM.KEY_ROOT, 'param2', self.value_size, start=0,
@@ -300,7 +300,7 @@ class EvictionKV(EvictionBase):
         view = View(default_view_name, default_map_func, None, False)
 
         ddoc_name = "ddoc1"
-        tasks = self.async_create_views(self.master, ddoc_name, [view], self.buckets[0].name)
+        tasks = self.async_create_views(self.main, ddoc_name, [view], self.buckets[0].name)
         for task in tasks:
             try:
                 task.result()
@@ -314,7 +314,7 @@ class EphemeralBackupRestoreTest(EvictionBase):
     def setUp(self):
         super(EvictionBase, self).setUp()
         self.only_store_hash = False
-        self.shell = RemoteMachineShellConnection(self.master)
+        self.shell = RemoteMachineShellConnection(self.main)
 
     def tearDown(self):
         super(EvictionBase, self).tearDown()
@@ -339,11 +339,11 @@ class EphemeralBackupRestoreTest(EvictionBase):
         self.log.info(output)
         self.assertEqual('Backup successfully completed', output[1])
         BucketOperationHelper.delete_all_buckets_or_assert(self.servers, self)
-        imp_rest = RestConnection(self.master)
+        imp_rest = RestConnection(self.main)
         info = imp_rest.get_nodes_self()
         if info.memoryQuota and int(info.memoryQuota) > 0:
             self.quota = info.memoryQuota
-        bucket_params = self._create_bucket_params(server=self.master, size=250, bucket_type='ephemeral',
+        bucket_params = self._create_bucket_params(server=self.main, size=250, bucket_type='ephemeral',
                                                    replicas=self.num_replicas,
                                                    enable_replica_index=self.enable_replica_index,
                                                    eviction_policy=self.eviction_policy)
@@ -355,7 +355,7 @@ class EphemeralBackupRestoreTest(EvictionBase):
                                                        0])
         self.log.info(output)
         self.assertEqual('Restore completed successfully', output[1])
-        self._verify_all_buckets(self.master)
+        self._verify_all_buckets(self.main)
 
 
 class EphemeralBucketsOOM(EvictionBase, DCPBase):
@@ -475,7 +475,7 @@ class EphemeralBucketsOOM(EvictionBase, DCPBase):
         # This bit of code is slow with 1024 vbuckets
         pre_delete_sequence_numbers = [0] * self.vbuckets
         for v in range(self.vbuckets):
-            vb_uuid, seqno, high_seqno = self.vb_info(self.master, v)
+            vb_uuid, seqno, high_seqno = self.vb_info(self.main, v)
             pre_delete_sequence_numbers[v] = high_seqno
 
         item_count = rest.get_bucket(self.buckets[0]).stats.itemCount
@@ -562,7 +562,7 @@ class EphemeralBucketsOOM(EvictionBase, DCPBase):
         self.log.info('The number of items is {0}'.format(item_count))
 
         for v in range(self.vbuckets):
-            vb_uuid, seqno, high_seqno = self.vb_info(self.master, v)
+            vb_uuid, seqno, high_seqno = self.vb_info(self.main, v)
             pre_delete_sequence_numbers[v] = high_seqno
 
         dcp_client = self.dcp_client(self.servers[0], 'producer')
@@ -587,13 +587,13 @@ class EvictionDCP(EvictionBase, DCPBase):
 
     def setUp(self):
         super(EvictionDCP, self).setUp()
-        self.dcp_client = DcpClient(self.master.ip, int(11210))
-        self.dcp_client.sasl_auth_plain(self.master.rest_username, self.master.rest_password)
+        self.dcp_client = DcpClient(self.main.ip, int(11210))
+        self.dcp_client.sasl_auth_plain(self.main.rest_username, self.main.rest_password)
         self.dcp_client.bucket_select('default')
         self.dcp_client.open_producer(name='eviction', delete_times=True)
 
         self.rest = RestConnection(self.servers[0])
-        self.client = MemcachedClientHelper.direct_client(self.master, 'default')
+        self.client = MemcachedClientHelper.direct_client(self.main, 'default')
 
     def tearDown(self):
         super(EvictionDCP, self).tearDown()
@@ -604,7 +604,7 @@ class EvictionDCP(EvictionBase, DCPBase):
         vbuckets = self.rest.get_vbuckets()
 
         doc_gen = BlobGenerator('dcpdata', 'dcpdata-', self.value_size, end=self.num_items)
-        self._load_all_buckets(self.master, doc_gen, "create", 10)
+        self._load_all_buckets(self.main, doc_gen, "create", 10)
         # sleep for 10 seconds
         time.sleep(10)
         # get the item count
@@ -649,7 +649,7 @@ class EvictionDCP(EvictionBase, DCPBase):
         KEY_ROOT = 'dcpdata'
 
         doc_gen = BlobGenerator(KEY_ROOT, 'dcpdata-', self.value_size, end=self.num_items)
-        self._load_all_buckets(self.master, doc_gen, "create", 40)
+        self._load_all_buckets(self.main, doc_gen, "create", 40)
         time.sleep(10)
 
         # get the item count

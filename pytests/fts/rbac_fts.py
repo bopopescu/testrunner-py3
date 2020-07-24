@@ -13,7 +13,7 @@ class RbacFTS(FTSBaseTest):
         self.inp_users = []
         if users:
             self.inp_users = eval(eval(users))
-        self.master = self._cb_cluster.get_master_node()
+        self.main = self._cb_cluster.get_main_node()
         self.users = self.get_user_list()
         self.roles = self.get_user_role_list()
 
@@ -38,13 +38,13 @@ class RbacFTS(FTSBaseTest):
         """
         if not users:
             users = self.users
-        RbacBase().create_user_source(users, 'builtin', self.master)
+        RbacBase().create_user_source(users, 'builtin', self.main)
         self.log.info("SUCCESS: User(s) %s created"
                       % ','.join([user['name'] for user in users]))
 
     def assign_role(self, rest=None, roles=None):
         if not rest:
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
         #Assign roles to users
         if not roles:
             roles = self.roles
@@ -55,7 +55,7 @@ class RbacFTS(FTSBaseTest):
 
     def delete_role(self, rest=None, user_ids=None):
         if not rest:
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
         if not user_ids:
             user_ids = [user['id'] for user in self.roles]
         RbacBase().remove_user_role(user_ids, rest)

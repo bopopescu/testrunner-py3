@@ -13,8 +13,8 @@ class XDCRPrioritization(XDCRNewBaseTest):
         XDCRNewBaseTest.setUp(self)
         self.src_cluster = self.get_cb_cluster_by_name('C1')
         self.dest_cluster = self.get_cb_cluster_by_name('C2')
-        self.src_master = self.src_cluster.get_master_node()
-        self.dest_master = self.dest_cluster.get_master_node()
+        self.src_main = self.src_cluster.get_main_node()
+        self.dest_main = self.dest_cluster.get_main_node()
         self.rdirection = self._input.param("rdirection", "unidirection")
         self.initial = self._input.param("initial", False)
         if self.initial:
@@ -73,7 +73,7 @@ class XDCRPrioritization(XDCRNewBaseTest):
         self.__verify_dcp_priority(server, expected_priority)
 
     def _verify_goxdcr_priority(self, cluster):
-        rest = RestConnection(cluster.get_master_node())
+        rest = RestConnection(cluster.get_main_node())
         match = True
         for bucket in rest.get_buckets():
             param_str = self._input.param(
@@ -84,18 +84,18 @@ class XDCRPrioritization(XDCRNewBaseTest):
                 actual_priority = str(rest.get_xdcr_param(bucket.name, bucket.name, "priority"))
                 if expected_priority != actual_priority:
                     match = False
-                self.print_status(bucket.name, cluster.get_master_node().ip, "goxdcr priority",
+                self.print_status(bucket.name, cluster.get_main_node().ip, "goxdcr priority",
                                    actual_priority, expected_priority, match=match)
 
     def verify_results(self):
         self._verify_goxdcr_priority(self.src_cluster)
-        self._verify_dcp_priority(self.src_master)
+        self._verify_dcp_priority(self.src_main)
         if self.rdirection == "bidirection":
             self._verify_goxdcr_priority(self.dest_cluster)
-            self._verify_dcp_priority(self.dest_master)
+            self._verify_dcp_priority(self.dest_main)
 
     def _verify_tunable(self, cluster, input_param, repl_param):
-        rest = RestConnection(cluster.get_master_node())
+        rest = RestConnection(cluster.get_main_node())
         buckets = rest.get_buckets()
         match = True
         for bucket in buckets:
@@ -108,7 +108,7 @@ class XDCRPrioritization(XDCRNewBaseTest):
                     actual = str(rest.get_xdcr_param(bucket.name, bucket.name, repl_param))
                     if expected != actual:
                         match = False
-                    self.print_status(bucket.name, cluster.get_master_node().ip, input_param, actual, expected,
+                    self.print_status(bucket.name, cluster.get_main_node().ip, input_param, actual, expected,
                                        match=match)
 
     def get_cluster_objects_for_input(self, input):
@@ -178,10 +178,10 @@ class XDCRPrioritization(XDCRNewBaseTest):
             self.wait_for_op_to_complete(60)
 
         if gomaxprocs:
-            rest = RestConnection(self.src_master)
+            rest = RestConnection(self.src_main)
             rest.set_global_xdcr_param("goMaxProcs", gomaxprocs)
             if self.rdirection == "bidirection":
-                rest = RestConnection(self.dest_master)
+                rest = RestConnection(self.dest_main)
                 rest.set_global_xdcr_param("goMaxProcs", gomaxprocs)
 
         self._verify_tunable(self.src_cluster, "desired_latency", "desiredLatency")

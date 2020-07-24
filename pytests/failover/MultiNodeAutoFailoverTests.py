@@ -6,7 +6,7 @@ from membase.api.exception import RebalanceFailedException, \
 class MultiNodeAutoFailoverTests(AutoFailoverBaseTest):
     def setUp(self):
         super(MultiNodeAutoFailoverTests, self).setUp()
-        self.master = self.servers[0]
+        self.main = self.servers[0]
 
     def tearDown(self):
         super(MultiNodeAutoFailoverTests, self).tearDown()

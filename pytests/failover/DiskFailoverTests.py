@@ -17,9 +17,9 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
 
     def _loadgen(self):
         tasks = []
-        tasks.extend(self._async_load_all_buckets(self.master, self.run_time_create_load_gen, "create", 0))
-        tasks.extend(self._async_load_all_buckets(self.master, self.update_load_gen, "update", 0))
-        tasks.extend(self._async_load_all_buckets(self.master, self.delete_load_gen, "delete", 0))
+        tasks.extend(self._async_load_all_buckets(self.main, self.run_time_create_load_gen, "create", 0))
+        tasks.extend(self._async_load_all_buckets(self.main, self.update_load_gen, "update", 0))
+        tasks.extend(self._async_load_all_buckets(self.main, self.delete_load_gen, "delete", 0))
         return tasks
 
     def test_disk_autofailover_rest_api(self):
@@ -45,7 +45,7 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
     def test_disk_failure_for_reads(self):
         self.enable_disk_autofailover_and_validate()
         tasks = []
-        tasks.extend(self._async_load_all_buckets(self.master, self.initial_load_gen, "read", 0))
+        tasks.extend(self._async_load_all_buckets(self.main, self.initial_load_gen, "read", 0))
         self.loadgen_tasks =  tasks
         self.failover_expected = (not self.failover_action == "disk_full")
         self.failover_actions[self.failover_action]()
@@ -74,7 +74,7 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
         self.enable_disk_autofailover_and_validate()
         self.sleep(5)
         self.loadgen_tasks = self._loadgen()
-        self.loadgen_tasks.extend(self._async_load_all_buckets(self.master, self.initial_load_gen, "read", 0))
+        self.loadgen_tasks.extend(self._async_load_all_buckets(self.main, self.initial_load_gen, "read", 0))
         rebalance_task = self.cluster.async_rebalance(self.servers,
                                                       self.servers_to_add,
                                                       self.servers_to_remove)
@@ -108,7 +108,7 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
         self.enable_disk_autofailover_and_validate()
         self.sleep(5)
         self.loadgen_tasks = self._loadgen()
-        self.loadgen_tasks.extend(self._async_load_all_buckets(self.master, self.initial_load_gen, "read", 0))
+        self.loadgen_tasks.extend(self._async_load_all_buckets(self.main, self.initial_load_gen, "read", 0))
         rebalance_success = self.cluster.rebalance(self.servers,
                                                    self.servers_to_add,
                                                    self.servers_to_remove)
@@ -133,7 +133,7 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
         self.enable_disk_autofailover_and_validate()
         self.sleep(5)
         self.loadgen_tasks = self._loadgen()
-        self.loadgen_tasks.extend(self._async_load_all_buckets(self.master, self.initial_load_gen, "read", 0))
+        self.loadgen_tasks.extend(self._async_load_all_buckets(self.main, self.initial_load_gen, "read", 0))
         self.failover_actions[self.failover_action]()
         for node in self.servers_to_add:
             self.rest.add_node(user=self.orchestrator.rest_username,
@@ -168,7 +168,7 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
         self.enable_disk_autofailover_and_validate()
         self.sleep(5)
         self.loadgen_tasks = self._loadgen()
-        self.loadgen_tasks.extend(self._async_load_all_buckets(self.master, self.initial_load_gen, "read", 0))
+        self.loadgen_tasks.extend(self._async_load_all_buckets(self.main, self.initial_load_gen, "read", 0))
         self.failover_actions[self.failover_action]()
         self.bring_back_failed_nodes_up()
         self.sleep(30)
@@ -202,7 +202,7 @@ class DiskAutofailoverTests(DiskAutoFailoverBasetest):
         self.enable_disk_autofailover_and_validate()
         self.sleep(5)
         self.loadgen_tasks = self._loadgen()
-        self.loadgen_tasks.extend(self._async_load_all_buckets(self.master, self.initial_load_gen, "read", 0))
+        self.loadgen_tasks.extend(self._async_load_all_buckets(self.main, self.initial_load_gen, "read", 0))
         self.failover_actions[self.failover_action]()
         self.nodes = self.rest.node_statuses()
         self.remove_after_failover = True

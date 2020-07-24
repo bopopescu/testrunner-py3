@@ -16,7 +16,7 @@ DISTINCT_AGGREGATE_FUNCTIONS = ["SUM", "COUNT", "AVG"]
 class AggregatePushdownRecoveryClass(QueryTests):
     def setUp(self):
         super(AggregatePushdownRecoveryClass, self).setUp()
-        self.n1ql_helper = N1QLHelper(master=self.master)
+        self.n1ql_helper = N1QLHelper(main=self.main)
         self.n1ql_node = self.get_nodes_from_services_map(service_type="n1ql")
         self.aggr_distinct = self.input.param("aggr_distinct", False)
         self.graceful = self.input.param("graceful", False)
@@ -109,11 +109,11 @@ class AggregatePushdownRecoveryClass(QueryTests):
             raise
 
     def test_indexer_failover_add_back(self):
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         self.generate_map_nodes_out_dist()
         index_names_defn = self._create_array_index_definitions()
         try:
-            failover_task =self.cluster.async_failover([self.master],
+            failover_task =self.cluster.async_failover([self.main],
                                                        failover_nodes=self.nodes_out_list,
                                                        graceful=self.graceful)
             failover_task.result()
@@ -192,11 +192,11 @@ class AggregatePushdownRecoveryClass(QueryTests):
             self.assertEqual(len(failed_queries_in_result), 0, "Failed Queries: {0}".format(failed_queries_in_result))
 
     def _wait_until_cluster_is_healthy(self):
-        master_node = self.master
-        if self.targetMaster:
+        main_node = self.main
+        if self.targetMain:
             if len(self.servers) > 1:
-                master_node = self.servers[1]
-        rest = RestConnection(master_node)
+                main_node = self.servers[1]
+        rest = RestConnection(main_node)
         is_cluster_healthy = False
         count = 0
         while not is_cluster_healthy and count < 10:

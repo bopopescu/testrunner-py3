@@ -259,7 +259,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
                             self.n1ql_node = n1ql_node
                             break
             failover_task = self.cluster.async_failover(
-                [self.master],
+                [self.main],
                 failover_nodes=[node],
                 graceful=False)
             failover_task.result()
@@ -269,7 +269,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
                 th.join()
             log.info("==== Upgrade Complete ====")
             self.sleep(120)
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             nodes_all = rest.node_statuses()
             for cluster_node in nodes_all:
                 if cluster_node.ip == node.ip:
@@ -337,12 +337,12 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
         rest = RestConnection(indexer_node)
         rest.set_downgrade_storage_mode_with_rest(self.disable_plasma_upgrade)
         failover_task = self.cluster.async_failover(
-                [self.master],
+                [self.main],
                 failover_nodes=[indexer_node],
                 graceful=False)
         failover_task.result()
         log.info("Node Failed over...")
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         nodes_all = rest.node_statuses()
         for cluster_node in nodes_all:
             if cluster_node.ip == indexer_node.ip:
@@ -442,7 +442,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
         rebalance.result()
         upgrade_th = self._async_update(self.upgrade_to, index_nodes)
         self.sleep(120)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         log.info("Setting indexer storage mode to {0}...".format(self.post_upgrade_gsi_type))
         status = rest.set_indexer_storage_mode(storageMode=self.post_upgrade_gsi_type)
         if status:
@@ -648,7 +648,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
         node_map = self._get_nodes_with_version()
         for node, vals in node_map.items():
             if vals["version"] < "5":
-                rest = RestConnection(self.master)
+                rest = RestConnection(self.main)
                 index_map = rest.get_index_status()
                 log.info(index_map)
                 lost_indexes = {}
@@ -680,7 +680,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
         node_map = self._get_nodes_with_version()
         for node, vals in node_map.items():
             if vals["version"] > "5":
-                rest = RestConnection(self.master)
+                rest = RestConnection(self.main)
                 index_map = rest.get_index_status()
                 log.info(index_map)
                 for query_definition in self.query_definitions:
@@ -716,7 +716,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
 
     def _find_index_lost_when_indexer_down(self, index_node):
         lost_indexes = {}
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_status()
         log.info("index_map: {0}".format(index_map))
         host = "{0}:8091".format(index_node.ip)
@@ -730,7 +730,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
         return lost_indexes
 
     def _get_nodes_with_version(self):
-        rest_conn = RestConnection(self.master)
+        rest_conn = RestConnection(self.main)
         nodes = rest_conn.get_nodes()
         map  = {}
         for cluster_node in nodes:
@@ -771,7 +771,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
         for bucket in self.buckets:
             if bucket.name.startswith("standard"):
                 BucketOperationHelper.delete_bucket_or_assert(
-                    serverInfo=self.master, bucket=bucket.name)
+                    serverInfo=self.main, bucket=bucket.name)
         self.buckets = [bu for bu in self.buckets if not bu.name.startswith("standard")]
         buckets = []
         for i in range(self.num_plasma_buckets):
@@ -779,7 +779,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
             buckets.append(name)
         bucket_size = self._get_bucket_size(self.quota,
                                             len(self.buckets)+len(buckets))
-        self._create_buckets(server=self.master, bucket_list=buckets,
+        self._create_buckets(server=self.main, bucket_list=buckets,
                              bucket_size=bucket_size)
         testuser = []
         rolelist = []
@@ -798,7 +798,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
         for node, vals in node_map.items():
             if vals["version"] < "5":
                 return
-        self.rest = RestConnection(self.master)
+        self.rest = RestConnection(self.main)
         map_before_rebalance, stats_map_before_rebalance = self._return_maps()
         nodes_out_list = self.get_nodes_from_services_map(service_type="index")
         # rebalance out a node
@@ -824,7 +824,7 @@ class UpgradeSecondaryIndex(BaseSecondaryIndexingTests, NewUpgradeBaseTest):
 
     def _verify_alter_index(self):
         index_nodes = self.get_nodes_from_services_map(service_type="index", get_all_nodes=True)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_status()
         log.info("index_map: {0}".format(index_map))
         index_info = index_map[self.buckets[0].name]

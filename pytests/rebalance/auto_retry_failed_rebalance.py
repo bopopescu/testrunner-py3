@@ -177,7 +177,7 @@ class AutoRetryFailedRebalance(RebalanceBaseTest):
                 # delete buckets and create new one
                 BucketOperationHelper.delete_all_buckets_or_assert(servers=self.servers, test_case=self)
                 self.sleep(self.sleep_time)
-                BucketOperationHelper.create_bucket(self.master, test_case=self)
+                BucketOperationHelper.create_bucket(self.main, test_case=self)
             elif post_failure_operation == "change_replica_count":
                 # change replica count
                 self.log.info("Changing replica count of buckets")
@@ -275,13 +275,13 @@ class AutoRetryFailedRebalance(RebalanceBaseTest):
             operation = self.cluster.async_rebalance(self.servers[:self.nodes_init],
                                                      [self.servers[self.nodes_init]], [])
         elif rebalance_operation == "swap_rebalance":
-            self.rest.add_node(self.master.rest_username, self.master.rest_password,
+            self.rest.add_node(self.main.rest_username, self.main.rest_password,
                                self.servers[self.nodes_init].ip, self.servers[self.nodes_init].port)
             operation = self.cluster.async_rebalance(self.servers[:self.nodes_init], []
                                                      , [self.servers[self.nodes_init - 1]])
         elif rebalance_operation == "graceful_failover":
             # TODO : retry for graceful failover is not yet implemented
-            operation = self.cluster.async_failover([self.master], failover_nodes=[self.servers[1]],
+            operation = self.cluster.async_failover([self.main], failover_nodes=[self.servers[1]],
                                                     graceful=True, wait_for_pending=120)
         return operation
 

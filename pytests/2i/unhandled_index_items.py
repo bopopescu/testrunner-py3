@@ -79,7 +79,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
         else:
             query_definitions = self._create_indexes()
             self.sleep(10)
-            rest = RestConnection(self.master)
+            rest = RestConnection(self.main)
             index_map = rest.get_index_id_map()
             #full table scan
             for bucket in self.buckets:
@@ -105,7 +105,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         item_size_limit = self.max_item_size
         for i in range(5):
@@ -140,7 +140,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         item_size_limit = self.max_item_size * 5
         for i in range(3):
@@ -175,7 +175,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         #full table scan
         for bucket in self.buckets:
@@ -218,7 +218,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         #full table scan
         for bucket in self.buckets:
@@ -262,7 +262,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         array_size_limit = self.max_array_size
         for i in range(5):
@@ -296,7 +296,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         array_size_limit = self.max_array_size * 5
         for i in range(3):
@@ -331,7 +331,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size//4)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         #full table scan
         for bucket in self.buckets:
@@ -373,7 +373,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         #full table scan
         for bucket in self.buckets:
@@ -418,7 +418,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         for i in range(5):
             if (isinstance(self.allow_large_keys, str) and
@@ -458,7 +458,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         remote = RemoteMachineShellConnection(self.indexer_node)
         remote.stop_server()
@@ -492,7 +492,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
                                             array_size=self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         choice_list = ["increase", "decrease"]
         for i in range(random.randint(5, 10)):
@@ -534,7 +534,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
         self.change_max_array_size(self.max_array_size)
         query_definitions = self._create_indexes()
         self.sleep(30)
-        rest = RestConnection(self.master)
+        rest = RestConnection(self.main)
         index_map = rest.get_index_id_map()
         for bucket in self.buckets:
             self.rest.flush_bucket(bucket)
@@ -690,7 +690,7 @@ class GSIUnhandledIndexItems(BaseSecondaryIndexingTests):
         return expected_result
 
     def _update_document(self, bucket_name, key, document):
-        url = 'couchbase://{ip}/{name}'.format(ip=self.master.ip, name=bucket_name)
+        url = 'couchbase://{ip}/{name}'.format(ip=self.main.ip, name=bucket_name)
         bucket = Bucket(url, username=bucket_name, password="password")
         bucket.upsert(key, document)
 
